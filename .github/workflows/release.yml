@@ -62,10 +62,19 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -u
-          ls -la dist
-          test -n "$(ls -A dist)" || { echo "::error::aucun installateur à joindre"; exit 1; }
+          # upload-artifact conserve les sous-dossiers (dist/dmg/…, dist/nsis/…) : on ne joint que les FICHIERS installateurs.
+          mapfile -t files < <(find dist -type f \( -name '*.exe' -o -name '*.dmg' \) | sort)
+          printf '%s\n' "${files[@]}"
+          test "${#files[@]}" -gt 0 || { echo "::error::aucun installateur à joindre"; exit 1; }
           notes="Installateurs non signés (Windows .exe, macOS .dmg Apple Silicon et Intel). Windows et macOS afficheront un avertissement de sécurité tant que l'application n'est pas signée."
           # La sortie de gh est reprise dans une annotation : sans elle, un échec ne dit pas pourquoi.
-          out=$(gh release create "$TAG" dist/* --repo "$REPO" --draft --title "Slate $TAG" --notes "$notes" 2>&1) \
-            || { echo "::error::gh release create a échoué : $(printf '%s' "$out" | tr '\n' ' ' | cut -c1-600)"; exit 1; }
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            out=$(gh release upload "$TAG" "${files[@]}" --clobber --repo "$REPO" 2>&1) || fail=1
+          else
+            out=$(gh release create "$TAG" "${files[@]}" --repo "$REPO" --draft --title "Slate $TAG" --notes "$notes" 2>&1) || fail=1
+          fi
+          if [ "${fail:-0}" = 1 ]; then
+            echo "::error::publication des installateurs échouée : $(printf '%s' "$out" | tr '\n' ' ' | cut -c1-600)"
+            exit 1
+          fi
           echo "$out"
