@@ -1,0 +1,61 @@
+name: Release
+# Installateurs : Windows (.exe, NSIS) et macOS (.dmg, Apple Silicon et Intel).
+#  - Lancement manuel (« Run workflow ») : les installateurs sont déposés en artefacts de l'exécution (30 jours).
+#  - Étiquette « v* » : en plus, une version BROUILLON est créée avec les installateurs en pièces jointes ;
+#    rien n'est publié tant que vous ne publiez pas le brouillon vous-même.
+# Les builds ne sont PAS signés (aucun certificat) : Windows SmartScreen et macOS Gatekeeper afficheront un avertissement.
+on:
+  workflow_dispatch:
+    inputs:
+      supabase_url:
+        description: 'URL du projet Supabase (publique) ; vide = application en mode local seulement'
+        required: false
+      supabase_anon_key:
+        description: 'Clé PUBLIABLE du projet (publique par conception, jamais la clé secrète)'
+        required: false
+  push:
+    tags: ['v*']
+permissions: { contents: read }
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, bundles: nsis, label: windows-x64 }
+          - { os: macos-latest, bundles: dmg, label: macos-arm64 }
+          - { os: macos-15-intel, bundles: dmg, label: macos-x64 }
+    runs-on: ${{ matrix.os }}
+    env:
+      # Configuration cloud intégrée au build (valeurs publiques) : saisie manuelle, ou variables du dépôt pour les étiquettes.
+      VITE_SUPABASE_URL: ${{ inputs.supabase_url || vars.VITE_SUPABASE_URL }}
+      VITE_SUPABASE_ANON_KEY: ${{ inputs.supabase_anon_key || vars.VITE_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc, cache: pnpm }
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with: { workspaces: apps/desktop/src-tauri }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @slate/desktop tauri build --bundles ${{ matrix.bundles }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: slate-${{ matrix.label }}
+          path: |
+            apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
+          if-no-files-found: error
+  draft-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions: { contents: write }
+    steps:
+      - uses: actions/download-artifact@v4
+        with: { path: dist, pattern: slate-*, merge-multiple: true }
+      - name: Version brouillon (non publiée)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ github.ref_name }}" dist/* --repo "${{ github.repository }}" --draft --title "Slate ${{ github.ref_name }}" --notes "Installateurs non signés (Windows .exe, macOS .dmg Apple Silicon et Intel). Windows et macOS afficheront un avertissement de sécurité tant que l'application n'est pas signée."

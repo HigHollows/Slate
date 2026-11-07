@@ -1,0 +1,32 @@
+{
+  "name": "slate",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @slate/desktop tauri dev",
+    "build": "pnpm --filter @slate/desktop tauri build",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:rust": "cargo test --locked --manifest-path apps/desktop/src-tauri/Cargo.toml",
+    "clippy": "cargo clippy --locked --manifest-path apps/desktop/src-tauri/Cargo.toml --all-targets -- -D warnings",
+    "i18n:check": "node scripts/i18n-check.mjs",
+    "check": "pnpm lint && pnpm typecheck && pnpm test && pnpm i18n:check && pnpm test:rust && pnpm clippy",
+    "build:app": "pnpm --filter @slate/desktop tauri build --bundles app"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "eslint": "^9.0.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.9.10",
+    "typescript": "~5.9.0",
+    "typescript-eslint": "^8.72.1"
+  }
+}

@@ -1,0 +1,8 @@
+node_modules
+dist
+target
+pnpm-lock.yaml
+*.md
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/icons
+packages/icons/src/catalog.generated.ts

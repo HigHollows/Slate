@@ -1,0 +1,75 @@
+import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useNav } from '../navigation';
+import { toast } from '../../shared/ui';
+import { descendantIds, displayTitle } from './model';
+import { usePagesStore } from './context';
+
+/** Actions partagées par la barre latérale, la palette et les vues (une seule logique, plusieurs entrées). */
+export function useNodeActions() {
+  const store = usePagesStore();
+  const { t } = useTranslation();
+
+  const open = useCallback(
+    (id: string) => {
+      const kind = store.getState().nodes.find((n) => n.id === id)?.kind;
+      useNav
+        .getState()
+        .navigate(kind === 'database' ? { name: 'database', id } : { name: 'page', id });
+    },
+    [store],
+  );
+
+  const createPage = useCallback(
+    async (parentId: string | null = null) => {
+      const row = await store.getState().createNode({ parentId, kind: 'page' });
+      if (row) useNav.getState().navigate({ name: 'page', id: row.id });
+      return row;
+    },
+    [store],
+  );
+
+  const createDatabase = useCallback(
+    async (parentId: string | null = null) => {
+      const row = await store.getState().createDatabase({
+        parentId,
+        title: '',
+        titlePropertyName: t('databases.titleProperty'),
+        viewName: t('databases.defaultView'),
+      });
+      if (row) useNav.getState().navigate({ name: 'database', id: row.id });
+      return row;
+    },
+    [store, t],
+  );
+
+  const createFolder = useCallback(
+    (parentId: string | null = null) =>
+      store.getState().createNode({ parentId, kind: 'folder', title: t('pages.newFolder') }),
+    [store, t],
+  );
+
+  /** Met à la corbeille avec possibilité d'annuler. Si la page ouverte disparaît, retour à l'accueil. */
+  const remove = useCallback(
+    async (id: string) => {
+      const s = store.getState();
+      const node = s.nodes.find((n) => n.id === id);
+      if (!node) return;
+      const gone = descendantIds(s.nodes, id).add(id);
+      const count = await s.remove(id);
+      if (count === undefined) return;
+      const route = useNav.getState().route;
+      if ((route.name === 'page' || route.name === 'database') && gone.has(route.id))
+        useNav.getState().navigate({ name: 'home' });
+      toast.info(t('pages.movedToTrash', { title: displayTitle(node, t('pages.untitled')) }), {
+        label: t('pages.undo'),
+        run: () => {
+          void store.getState().restore(id);
+        },
+      });
+    },
+    [store, t],
+  );
+
+  return { open, createPage, createDatabase, createFolder, remove };
+}
