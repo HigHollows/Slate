@@ -1373,18 +1373,27 @@ fn recevoir_une_purge_supprime_la_copie_sans_echo_et_abandonne_le_local() {
     let rep = apply_remote_nodes(&c, &ws, &[gone_parent, gone_victim, unknown], Some(10)).unwrap();
     assert_eq!(rep.applied, 2, "inconnu = ignoré, sans erreur");
     let count = |id: &str| -> i64 {
-        c.query_row("SELECT count(*) FROM node WHERE id = ?1", [id], |r| r.get(0))
-            .unwrap()
+        c.query_row("SELECT count(*) FROM node WHERE id = ?1", [id], |r| {
+            r.get(0)
+        })
+        .unwrap()
     };
     assert_eq!(count(&parent), 0);
     assert_eq!(count(&victim), 0);
     assert_eq!(count(&kid), 1, "l'enfant survit, remonté à la racine");
     let pid: Option<String> = c
-        .query_row("SELECT parent_id FROM node WHERE id = ?1", [&kid], |r| r.get(0))
+        .query_row("SELECT parent_id FROM node WHERE id = ?1", [&kid], |r| {
+            r.get(0)
+        })
         .unwrap();
     assert!(pid.is_none());
     assert_eq!(
-        c.query_row("SELECT count(*) FROM page_content WHERE node_id = ?1", [&victim], |r| r.get::<_, i64>(0)).unwrap(),
+        c.query_row(
+            "SELECT count(*) FROM page_content WHERE node_id = ?1",
+            [&victim],
+            |r| r.get::<_, i64>(0)
+        )
+        .unwrap(),
         0
     );
     // aucun écho, et l'opération locale sur la victime est abandonnée
@@ -1435,9 +1444,15 @@ fn les_commentaires_sont_inscrits_fil_avant_message_avec_leur_espace() {
     ack_all(&c);
     let t = comments::create_thread(&c, T1, &p, "extrait", "Bonjour", Some("ada@x.y")).unwrap();
     let o = ops(&c);
-    let ti = o.iter().position(|(e, i, _)| e == "thread" && i == T1).unwrap();
+    let ti = o
+        .iter()
+        .position(|(e, i, _)| e == "thread" && i == T1)
+        .unwrap();
     let cid = &t.comments[0].id;
-    let ci = o.iter().position(|(e, i, _)| e == "comment" && i == cid).unwrap();
+    let ci = o
+        .iter()
+        .position(|(e, i, _)| e == "comment" && i == cid)
+        .unwrap();
     assert!(ti < ci, "le fil précède son message");
     assert_eq!(o[ti].2["node_id"], p.as_str());
     assert_eq!(o[ti].2["quote"], "extrait");
@@ -1477,13 +1492,19 @@ fn modifier_resoudre_et_supprimer_inscrivent_des_operations() {
     assert_eq!(d.len(), 1);
     assert!(d[0]["deleted_at"].is_string());
     assert_eq!(d[0]["workspace_id"], ws.as_str());
-    assert!(pending_ops(&c, 100).unwrap().iter().any(|x| x.entity_id == c2 && x.workspace_id == ws));
+    assert!(pending_ops(&c, 100)
+        .unwrap()
+        .iter()
+        .any(|x| x.entity_id == c2 && x.workspace_id == ws));
     ack_all(&c);
     // dernier message supprimé → fil supprimé
     assert!(comments::delete_comment(&c, &c1).unwrap());
     let o = ops(&c);
     assert!(fields_of(&o, "thread", T1)[0]["deleted_at"].is_string());
-    assert!(pending_ops(&c, 100).unwrap().iter().any(|x| x.entity == "thread" && x.workspace_id == ws));
+    assert!(pending_ops(&c, 100)
+        .unwrap()
+        .iter()
+        .any(|x| x.entity == "thread" && x.workspace_id == ws));
 }
 
 #[test]
@@ -1498,7 +1519,10 @@ fn purger_une_page_n_emet_pas_de_suppression_de_fil() {
     tree::purge(&c, &p).unwrap();
     let o = ops(&c);
     assert!(o.iter().all(|(e, _, _)| e != "thread" && e != "comment"));
-    assert!(!purge_ops(&c).is_empty(), "la purge du nœud, elle, est bien envoyée");
+    assert!(
+        !purge_ops(&c).is_empty(),
+        "la purge du nœud, elle, est bien envoyée"
+    );
 }
 
 #[test]
@@ -1507,7 +1531,8 @@ fn invite_ou_espace_non_synchronise_aucune_operation_de_commentaire() {
     let p = page(&c, &ws, None, "P");
     comments::create_thread(&c, T1, &p, "q", "un", None).unwrap();
     assert_eq!(
-        c.query_row("SELECT count(*) FROM oplog", [], |r| r.get::<_, i64>(0)).unwrap(),
+        c.query_row("SELECT count(*) FROM oplog", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
         0
     );
 }
@@ -1519,7 +1544,10 @@ fn activer_inscrit_les_commentaires_existants_fil_avant_message() {
     comments::create_thread(&c, T1, &p, "q", "un", None).unwrap();
     enable(&c, &ws).unwrap();
     let o = ops(&c);
-    let ti = o.iter().position(|(e, i, _)| e == "thread" && i == T1).unwrap();
+    let ti = o
+        .iter()
+        .position(|(e, i, _)| e == "thread" && i == T1)
+        .unwrap();
     let ci = o.iter().position(|(e, _, _)| e == "comment").unwrap();
     assert!(ti < ci);
 }
@@ -1555,7 +1583,13 @@ fn recevoir_fil_et_messages_sans_echo_avec_auteur_et_modifications() {
     let p = page(&c, &ws, None, "P");
     enable(&c, &ws).unwrap();
     ack_all(&c);
-    let rep = apply_remote_struct(&c, &ws, &[rthread(T1, &p), rcomment(K1, T1, "Salut")], Some(7)).unwrap();
+    let rep = apply_remote_struct(
+        &c,
+        &ws,
+        &[rthread(T1, &p), rcomment(K1, T1, "Salut")],
+        Some(7),
+    )
+    .unwrap();
     assert_eq!((rep.applied, rep.unresolved, rep.skipped), (2, 0, 0));
     let th = comments::thread(&c, T1).unwrap();
     assert_eq!(th.created_by.as_deref(), Some("bob@x.y"));
@@ -1569,7 +1603,12 @@ fn recevoir_fil_et_messages_sans_echo_avec_auteur_et_modifications() {
         *edited_at = Some("2026-06-02T10:00:00Z".into());
     }
     let mut resolved = rthread(T1, &p);
-    if let RemoteStruct::Thread { resolved_at, resolved_label, .. } = &mut resolved {
+    if let RemoteStruct::Thread {
+        resolved_at,
+        resolved_label,
+        ..
+    } = &mut resolved
+    {
         *resolved_at = Some("2026-06-02T11:00:00Z".into());
         *resolved_label = Some("bob@x.y".into());
     }
@@ -1588,11 +1627,21 @@ fn message_avant_son_fil_ou_page_absente_reste_non_resolu_sans_avancer_le_curseu
     enable(&c, &ws).unwrap();
     ack_all(&c);
     let before = cursor(&c, "struct_cursor");
-    let rep = apply_remote_struct(&c, &ws, &[rcomment(K1, T1, "x"), rthread(T1, "0192f0a0-0000-7000-8000-0000000fffff")], Some(9)).unwrap();
+    let rep = apply_remote_struct(
+        &c,
+        &ws,
+        &[
+            rcomment(K1, T1, "x"),
+            rthread(T1, "0192f0a0-0000-7000-8000-0000000fffff"),
+        ],
+        Some(9),
+    )
+    .unwrap();
     assert_eq!(rep.unresolved, 2);
     assert_eq!(cursor(&c, "struct_cursor"), before);
     // une fois le fil arrivé, la reprise aboutit
-    let rep = apply_remote_struct(&c, &ws, &[rthread(T1, &p), rcomment(K1, T1, "x")], Some(9)).unwrap();
+    let rep =
+        apply_remote_struct(&c, &ws, &[rthread(T1, &p), rcomment(K1, T1, "x")], Some(9)).unwrap();
     assert_eq!(rep.unresolved, 0);
     assert_eq!(cursor(&c, "struct_cursor"), 9);
 }
@@ -1607,7 +1656,10 @@ fn modification_locale_en_attente_jamais_ecrasee_et_suppression_distante() {
     ack_all(&c);
     comments::edit_comment(&c, &cid, "mon brouillon").unwrap(); // en attente
     apply_remote_struct(&c, &ws, &[rcomment(&cid, T1, "version distante")], None).unwrap();
-    assert_eq!(comments::thread(&c, T1).unwrap().comments[0].body, "mon brouillon");
+    assert_eq!(
+        comments::thread(&c, T1).unwrap().comments[0].body,
+        "mon brouillon"
+    );
     ack_all(&c);
     // suppression distante du fil : tout disparaît localement, sans écho
     let mut gone = rthread(T1, &p);
@@ -1617,7 +1669,8 @@ fn modification_locale_en_attente_jamais_ecrasee_et_suppression_distante() {
     apply_remote_struct(&c, &ws, &[gone], None).unwrap();
     assert!(comments::thread(&c, T1).is_err());
     assert_eq!(
-        c.query_row("SELECT count(*) FROM comment", [], |r| r.get::<_, i64>(0)).unwrap(),
+        c.query_row("SELECT count(*) FROM comment", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
         0
     );
     assert!(pending_ops(&c, 100).unwrap().is_empty());
@@ -1632,7 +1685,8 @@ fn contenu_distant_invalide_est_ignore_et_signale() {
     if let RemoteStruct::Thread { quote, .. } = &mut bad {
         *quote = "x".repeat(401);
     }
-    let rep = apply_remote_struct(&c, &ws, &[bad, rcomment(K1, T1, &"y".repeat(5001))], None).unwrap();
+    let rep =
+        apply_remote_struct(&c, &ws, &[bad, rcomment(K1, T1, &"y".repeat(5001))], None).unwrap();
     assert_eq!(rep.skipped, 2);
     assert!(comments::thread(&c, T1).is_err());
 }

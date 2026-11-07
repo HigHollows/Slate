@@ -631,7 +631,10 @@ fn purge_local(conn: &Connection, ws: &str, id: &str) -> AppResult<bool> {
     if lws != ws {
         return Err(AppError::Invalid("nœud d'un autre espace".into()));
     }
-    conn.execute("UPDATE node SET parent_id = NULL WHERE parent_id = ?1", [id])?;
+    conn.execute(
+        "UPDATE node SET parent_id = NULL WHERE parent_id = ?1",
+        [id],
+    )?;
     conn.execute("DELETE FROM search_index WHERE node_id = ?1", [id])?;
     conn.execute("DELETE FROM page_version WHERE node_id = ?1", [id])?;
     conn.execute("DELETE FROM comment_thread WHERE node_id = ?1", [id])?;
