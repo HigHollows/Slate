@@ -1143,7 +1143,8 @@
       "rateLimited": "Too many sends for this invitation (3 at most, one per minute). Pass the token on yourself or try again in a minute.",
       "failed": "The e-mail could not be sent (the sending service refused it or is unreachable). Pass the token below on yourself, or try again.",
       "retry": "Send the e-mail again"
-    }
+    },
+    "sharedTag": "shared"
   },
   "presence": {
     "with": "With: {{names}}",

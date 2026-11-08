@@ -87,6 +87,13 @@ export const syncControl = createSyncControl({
     },
   }),
   store: syncStore,
+  onJoined: (id) => {
+    // Rafraîchit la liste des espaces puis affiche celui qu'on vient de rejoindre (sinon on resterait sur son espace vide).
+    void pagesStore
+      .getState()
+      .init()
+      .then(() => pagesStore.getState().setWorkspace(id));
+  },
   onRemoteChange: () => {
     bus.emit('sync-applied', {});
     void pagesStore.getState().init();

@@ -584,7 +584,11 @@ export function fakeBackend(initial: Record<string, string> = {}) {
     syncApplyDoc: vi.fn(async () => 'applied' as const),
     syncSetDocCursor: vi.fn(async () => undefined),
     syncSetRole: vi.fn(async () => syncStatusNow()),
-    syncJoinWorkspace: vi.fn(async () => syncStatusNow()),
+    syncJoinWorkspace: vi.fn(async (ws: string, name: string) => {
+      if (!extraWorkspaces.some((w) => w.id === ws))
+        extraWorkspaces.push({ id: ws, name, kind: 'shared' });
+      return syncStatusNow();
+    }),
     syncRecordError: vi.fn(async (_w: string, m: string) => {
       syncState.lastError = m;
       return undefined;
@@ -969,6 +973,12 @@ export async function renderApp(initial: Record<string, string> = {}, options: R
       live: { get: () => undefined, applyUpdate: () => undefined },
     }),
     onRemoteChange: () => undefined,
+    onJoined: (id) => {
+      void pages
+        .getState()
+        .init()
+        .then(() => pages.getState().setWorkspace(id));
+    },
     onError: report,
   });
   const deps: AppDeps = {

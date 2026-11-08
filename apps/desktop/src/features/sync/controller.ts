@@ -26,6 +26,8 @@ export interface SyncControlDeps {
   store: SyncStore;
   /** Rafraîchit l'arborescence quand des nœuds distants ont été appliqués. */
   onRemoteChange(): void;
+  /** Un espace vient d'être rejoint (invitation acceptée, première synchronisation faite) : l'afficher. */
+  onJoined?(workspaceId: string): void;
   onError(e: unknown): void;
 }
 
@@ -44,6 +46,7 @@ export function createSyncControl(d: SyncControlDeps): SyncControl {
           .set({ status: await d.api.syncJoinWorkspace(r.workspace_id, r.name, r.role) });
         d.onRemoteChange(); // l'espace rejoint doit apparaître tout de suite dans la liste
         await run();
+        d.onJoined?.(r.workspace_id);
         return { workspaceId: r.workspace_id, name: r.name, role: r.role };
       } catch (e) {
         d.onError(e);

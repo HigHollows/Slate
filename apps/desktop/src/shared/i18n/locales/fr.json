@@ -1143,7 +1143,8 @@
       "rateLimited": "Trop d'envois pour cette invitation (3 au maximum, un par minute). Transmettez le jeton vous-même ou réessayez dans une minute.",
       "failed": "L'e-mail n'a pas pu être envoyé (le service d'envoi l'a refusé ou est injoignable). Transmettez le jeton ci-dessous vous-même, ou réessayez.",
       "retry": "Renvoyer l'e-mail"
-    }
+    },
+    "sharedTag": "partagé"
   },
   "presence": {
     "with": "Avec : {{names}}",

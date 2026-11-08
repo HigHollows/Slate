@@ -235,6 +235,12 @@ describe('partage d’un espace', () => {
       expect(ctx.api.syncJoinWorkspace).toHaveBeenCalledWith(SHARED, 'Équipe', 'editor'),
     );
     expect(await screen.findByText(/Espace « Équipe » rejoint/)).toBeInTheDocument();
+    // l'espace rejoint est AFFICHÉ tout de suite (sinon on resterait sur son propre espace, vide) et repéré comme partagé
+    await waitFor(() => expect(ctx.pages.getState().workspaceId).toBe(SHARED));
+    const picker = await screen.findByRole('combobox', { name: 'Espace affiché' });
+    expect(picker).toHaveValue(SHARED);
+    expect(within(picker).getByRole('option', { name: 'Équipe (partagé)' })).toBeInTheDocument();
+    expect(within(picker).getByRole('option', { name: 'Personnel' })).toBeInTheDocument();
   });
 
   it('jeton refusé : message clair, sans détail serveur, rien n’est rejoint', async () => {

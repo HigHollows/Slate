@@ -104,7 +104,8 @@ export function Sidebar({
         >
           {workspaces.map((w) => (
             <option key={w.id} value={w.id}>
-              {w.name}
+              {/* Deux espaces peuvent porter le même nom (le vôtre et celui d'un autre) : le partagé est toujours repéré. */}
+              {w.kind === 'shared' ? `${w.name} (${t('sharing.sharedTag')})` : w.name}
             </option>
           ))}
         </select>
