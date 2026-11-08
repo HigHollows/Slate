@@ -1,8 +1,9 @@
 name: Release
 # Installateurs : Windows (.exe, NSIS) et macOS (.dmg, Apple Silicon et Intel).
 #  - Lancement manuel (« Run workflow ») : les installateurs sont déposés en artefacts de l'exécution (30 jours).
-#  - Étiquette « v* » : en plus, une version BROUILLON est créée avec les installateurs en pièces jointes ;
-#    rien n'est publié tant que vous ne publiez pas le brouillon vous-même.
+#  - Étiquette « v* » : en plus, une version GitHub est PUBLIÉE automatiquement avec les installateurs en pièces jointes
+#    (publique si le dépôt l'est). Pour garder la main, créez d'abord le brouillon à la main : s'il existe déjà, les fichiers
+#    y sont ajoutés sans le publier.
 # Les builds ne sont PAS signés (aucun certificat) : Windows SmartScreen et macOS Gatekeeper afficheront un avertissement.
 on:
   workflow_dispatch:
@@ -55,7 +56,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with: { path: dist, pattern: slate-*, merge-multiple: true }
-      - name: Version brouillon (non publiée)
+      - name: Publication de la version
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ github.ref_name }}
@@ -71,7 +72,7 @@ jobs:
           if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
             out=$(gh release upload "$TAG" "${files[@]}" --clobber --repo "$REPO" 2>&1) || fail=1
           else
-            out=$(gh release create "$TAG" "${files[@]}" --repo "$REPO" --draft --title "Slate $TAG" --notes "$notes" 2>&1) || fail=1
+            out=$(gh release create "$TAG" "${files[@]}" --repo "$REPO" --latest --title "Slate $TAG" --notes "$notes" 2>&1) || fail=1
           fi
           if [ "${fail:-0}" = 1 ]; then
             echo "::error::publication des installateurs échouée : $(printf '%s' "$out" | tr '\n' ' ' | cut -c1-600)"
