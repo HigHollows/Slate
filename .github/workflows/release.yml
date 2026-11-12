@@ -26,7 +26,8 @@ jobs:
         include:
           - { os: windows-latest, args: '--bundles nsis', label: windows-x64 }
           - {
-              os: macos-latest,
+              # macos-14 (Apple Silicon) : « macos-latest » est resté sans exécuteur libre 20 minutes puis a été annulé (0.1.4).
+              os: macos-14,
               args: '--target aarch64-apple-darwin --bundles app,dmg',
               label: macos-arm64,
             }
