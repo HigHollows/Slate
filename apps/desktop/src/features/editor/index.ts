@@ -6,3 +6,5 @@ export { useWritingMode } from './writingMode';
 export { snapshotFromDoc } from './derive';
 export { liveDocs } from './liveDocs';
 export { PresenceProvider } from './presence';
+export { duplicatePage, pageMarkdown } from './pageTools';
+export { pageToMarkdown } from './markdown';

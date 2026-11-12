@@ -10,7 +10,12 @@ export interface SyncControl {
   syncNow(): Promise<void>;
   refreshStatus(): Promise<void>;
   /** Accepte une invitation (jeton) : rejoint l'espace localement puis le synchronise. `null` en cas d'échec (erreur déjà signalée). */
-  join(token: string): Promise<{ workspaceId: string; name: string; role: WorkspaceRole } | null>;
+  join(token: string): Promise<{
+    workspaceId: string;
+    name: string;
+    role: WorkspaceRole;
+    nodeId: string | null;
+  } | null>;
   /** Accès direct aux opérations de gestion (membres, invitations) : toujours validées côté serveur. */
   readonly client: SyncClient;
 }
@@ -27,7 +32,7 @@ export interface SyncControlDeps {
   /** Rafraîchit l'arborescence quand des nœuds distants ont été appliqués. */
   onRemoteChange(): void;
   /** Un espace vient d'être rejoint (invitation acceptée, première synchronisation faite) : l'afficher. */
-  onJoined?(workspaceId: string): void;
+  onJoined?(workspaceId: string, nodeId: string | null): void;
   onError(e: unknown): void;
 }
 
@@ -40,14 +45,21 @@ export function createSyncControl(d: SyncControlDeps): SyncControl {
     client: d.client,
     async join(token) {
       try {
-        const r = await d.client.acceptInvitation(token.trim());
+        // On peut coller le message d'invitation entier : le jeton (64 caractères hexadécimaux) y est retrouvé.
+        const found = /(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])/i.exec(token);
+        const r = await d.client.acceptInvitation(found ? found[0].toLowerCase() : token.trim());
         d.store
           .getState()
           .set({ status: await d.api.syncJoinWorkspace(r.workspace_id, r.name, r.role) });
         d.onRemoteChange(); // l'espace rejoint doit apparaître tout de suite dans la liste
         await run();
-        d.onJoined?.(r.workspace_id);
-        return { workspaceId: r.workspace_id, name: r.name, role: r.role };
+        d.onJoined?.(r.workspace_id, r.node_id ?? null);
+        return {
+          workspaceId: r.workspace_id,
+          name: r.name,
+          role: r.role,
+          nodeId: r.node_id ?? null,
+        };
       } catch (e) {
         d.onError(e);
         return null;

@@ -20,6 +20,25 @@ export function useNodeActions() {
     [store],
   );
 
+  /** Note du jour : la page « AAAA-MM-JJ » du dossier « Journal » (créés au besoin), puis on l'ouvre. Idempotent. */
+  const openToday = useCallback(async () => {
+    const day = new Date().toLocaleDateString('sv-SE'); // AAAA-MM-JJ, date LOCALE
+    const nodes = () => store.getState().nodes;
+    let folder = nodes().find(
+      (n) => n.kind === 'folder' && n.parentId === null && n.title === 'Journal',
+    );
+    folder ??= await store
+      .getState()
+      .createNode({ parentId: null, kind: 'folder', title: 'Journal' });
+    if (!folder) return undefined;
+    let page = nodes().find(
+      (n) => n.kind === 'page' && n.parentId === folder.id && n.title === day,
+    );
+    page ??= await store.getState().createNode({ parentId: folder.id, kind: 'page', title: day });
+    if (page) useNav.getState().navigate({ name: 'page', id: page.id });
+    return page;
+  }, [store]);
+
   const createPage = useCallback(
     async (parentId: string | null = null) => {
       const row = await store.getState().createNode({ parentId, kind: 'page' });
@@ -71,5 +90,5 @@ export function useNodeActions() {
     [store, t],
   );
 
-  return { open, createPage, createDatabase, createFolder, remove };
+  return { open, createPage, createDatabase, createFolder, remove, openToday };
 }

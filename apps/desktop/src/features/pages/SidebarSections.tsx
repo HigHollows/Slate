@@ -74,6 +74,7 @@ export function PagesSidebar() {
   const recents = usePages((s) => s.recents);
   const actions = useNodeActions();
   const canEdit = usePages((s) => s.canEdit);
+  const guest = usePages((s) => s.workspaceId !== null && s.guestSpaces.includes(s.workspaceId));
   const favorites = nodes.filter((n) => n.isFavorite && n.kind !== 'folder');
   const route = useNav((s) => s.route);
   return (
@@ -95,7 +96,7 @@ export function PagesSidebar() {
       <Section
         title={t('pages.title')}
         actions={
-          canEdit ? (
+          canEdit && !guest ? (
             <>
               <IconButton
                 icon="grid"

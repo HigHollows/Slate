@@ -1,5 +1,6 @@
-import { screen, waitFor, within } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { bus } from '../shared/bus';
 import { describe, expect, it, vi } from 'vitest';
 import { axe } from 'vitest-axe';
 import type { AuthClient, AuthSession } from '../features/account';
@@ -71,13 +72,38 @@ async function openAccount(
   return ctx;
 }
 
+describe('connexion : synchronisation dans la foulée', () => {
+  const signInViaForm = async (sync: boolean) => {
+    const user = userEvent.setup();
+    const ctx = await openAccount(user, false, okClient());
+    await user.type(screen.getByLabelText('Adresse e-mail'), 'ada@example.com');
+    await user.type(screen.getByLabelText('Mot de passe'), 'motdepasse1');
+    const box = screen.getByRole('checkbox', { name: 'Synchroniser cet appareil avec mon compte' });
+    expect(box).toBeChecked();
+    if (!sync) await user.click(box);
+    await user.click(screen.getByRole('button', { name: 'Se connecter' }));
+    await screen.findByRole('heading', { name: 'Synchronisation' });
+    return ctx;
+  };
+  it('case cochée (par défaut) : la synchronisation est activée dès la connexion', async () => {
+    const ctx = await signInViaForm(true);
+    await waitFor(() => expect(ctx.api.syncEnable).toHaveBeenCalledWith('ws'));
+    expect(await screen.findByText(/À jour \(confirmé par le serveur\)/)).toBeInTheDocument();
+  });
+  it('case décochée : rien n’est envoyé, la synchronisation reste désactivée', async () => {
+    const ctx = await signInViaForm(false);
+    expect(await screen.findByText(/Désactivée/)).toBeInTheDocument();
+    expect(ctx.api.syncEnable).not.toHaveBeenCalled();
+  });
+});
+
 describe('synchronisation : interface', () => {
   it('invité : pas de section, seulement l’invitation à se connecter', async () => {
     const user = userEvent.setup();
     await openAccount(user, false);
     expect(screen.queryByRole('heading', { name: 'Synchronisation' })).not.toBeInTheDocument();
     expect(
-      screen.getByText(/Connectez-vous pour synchroniser vos dossiers et pages/),
+      screen.getByText(/Connectez-vous pour retrouver vos pages, bases de données et commentaires/),
     ).toBeInTheDocument();
   });
 
@@ -243,6 +269,42 @@ describe('partage d’un espace', () => {
     expect(within(picker).getByRole('option', { name: 'Personnel' })).toBeInTheDocument();
   });
 
+  it('rejoindre : on peut coller le message d’invitation entier, le jeton y est retrouvé', async () => {
+    const user = userEvent.setup();
+    const client = sharingClient({
+      acceptInvitation: vi.fn(async () => ({
+        workspace_id: '0192f0a0-0000-7000-8000-0000000000ab',
+        name: 'Équipe',
+        role: 'viewer' as const,
+      })),
+    });
+    await openAccount(user, true, client);
+    const box = await screen.findByLabelText("Jeton d'invitation");
+    await user.click(box);
+    await user.paste(
+      `Je t'invite sur Slate.\n1. Connecte-toi\n2. Colle ce message :\n${'C'.repeat(64)}\nÀ bientôt`,
+    );
+    await user.click(screen.getByRole('button', { name: 'Rejoindre' }));
+    await waitFor(() => expect(client.acceptInvitation).toHaveBeenCalledWith('c'.repeat(64)));
+  });
+
+  it('copier l’invitation : un message prêt à envoyer, avec l’adresse et le jeton', async () => {
+    const user = userEvent.setup();
+    const client = sharingClient();
+    await openAccount(user, true, client);
+    await user.click(await screen.findByRole('button', { name: 'Activer' }));
+    await screen.findByText(/À jour/);
+    await user.type(await screen.findByLabelText('Adresse e-mail'), 'bob@example.com');
+    await user.click(screen.getByRole('checkbox', { name: /Envoyer aussi/ }));
+    await user.click(screen.getByRole('button', { name: "Créer l'invitation" }));
+    await user.click(await screen.findByRole('button', { name: "Copier l'invitation" }));
+    const copied = await navigator.clipboard.readText();
+    expect(copied).toContain('a'.repeat(64));
+    expect(copied).toContain('bob@example.com');
+    expect(copied).toContain('Rejoindre un espace');
+    expect(await screen.findByRole('button', { name: 'Copié' })).toBeInTheDocument();
+  });
+
   it('jeton refusé : message clair, sans détail serveur, rien n’est rejoint', async () => {
     const user = userEvent.setup();
     const client = sharingClient({
@@ -255,6 +317,103 @@ describe('partage d’un espace', () => {
     await user.click(screen.getByRole('button', { name: 'Rejoindre' }));
     expect(await screen.findByText(/Invitation invalide, expirée/)).toBeInTheDocument();
     expect(ctx.api.syncJoinWorkspace).not.toHaveBeenCalled();
+  });
+
+  describe('partage d’un dossier ou d’une page précis', () => {
+    const open = async (client: SyncClient, enable = true) => {
+      const user = userEvent.setup();
+      const ctx = await openAccount(user, true, client);
+      if (enable) {
+        await user.click(await screen.findByRole('button', { name: 'Activer' }));
+        await screen.findByText(/À jour/);
+      }
+      act(() => bus.emit('share-node', { id: 'n-folder', title: 'Projet', kind: 'folder' }));
+      const dlg = await screen.findByRole('dialog', { name: 'Partager « Projet »' });
+      return { user, ctx, dlg };
+    };
+    const nodeClient = (over: Partial<SyncClient> = {}) =>
+      sharingClient({
+        listNodeShares: vi.fn(async () => ({ shares: [], invitations: [] })),
+        createNodeInvitation: vi.fn(async (_n, email, role) => ({
+          id: 'i9',
+          token: 'd'.repeat(64),
+          email,
+          role,
+          expires_at: '2099-01-01T00:00:00Z',
+        })),
+        ...over,
+      });
+
+    it('invite sur CET élément seulement, avec un rôle lecteur ou éditeur (jamais administrateur)', async () => {
+      const client = nodeClient();
+      const { user, dlg } = await open(client);
+      expect(
+        within(dlg).getByText(/verra ce dossier et tout ce qu.il contient, rien d.autre/),
+      ).toBeInTheDocument();
+      const roles = within(dlg).getByRole('combobox', { name: 'Rôle' });
+      expect(
+        within(roles).queryByRole('option', { name: 'Administrateur' }),
+      ).not.toBeInTheDocument();
+      await user.type(within(dlg).getByLabelText('Adresse e-mail'), 'bob@example.com');
+      await user.selectOptions(roles, 'viewer');
+      await user.click(within(dlg).getByRole('button', { name: "Créer l'invitation" }));
+      await waitFor(() =>
+        expect(client.createNodeInvitation).toHaveBeenCalledWith(
+          'n-folder',
+          'bob@example.com',
+          'viewer',
+        ),
+      );
+      // jamais l'invitation d'espace entier
+      expect(client.createInvitation).not.toHaveBeenCalled();
+      expect(
+        await within(dlg).findByLabelText("Jeton d'invitation pour bob@example.com"),
+      ).toHaveValue('d'.repeat(64));
+    });
+
+    it('liste qui a accès et permet de retirer un accès ou de révoquer une invitation', async () => {
+      const removeNodeShare = vi.fn(async () => undefined);
+      const revokeInvitation = vi.fn(async () => undefined);
+      const client = nodeClient({
+        listNodeShares: vi.fn(async () => ({
+          shares: [
+            {
+              user_id: 'u-bob',
+              role: 'editor' as const,
+              email: 'bob@example.com',
+              display_name: 'Bob',
+            },
+          ],
+          invitations: [
+            {
+              id: 'i-1',
+              email: 'eve@example.com',
+              role: 'viewer' as const,
+              expires_at: '2099-01-01T00:00:00Z',
+            },
+          ],
+        })),
+        removeNodeShare,
+        revokeInvitation,
+      });
+      const { user, dlg } = await open(client);
+      expect(await within(dlg).findByText('Bob')).toBeInTheDocument();
+      await user.click(within(dlg).getByRole('button', { name: "Retirer l'accès de Bob" }));
+      await waitFor(() => expect(removeNodeShare).toHaveBeenCalledWith('n-folder', 'u-bob'));
+      await user.click(
+        within(dlg).getByRole('button', { name: "Révoquer l'invitation de eve@example.com" }),
+      );
+      await waitFor(() => expect(revokeInvitation).toHaveBeenCalledWith('i-1'));
+    });
+
+    it('sans synchronisation : explique quoi faire, aucun appel', async () => {
+      const client = nodeClient();
+      const { dlg } = await open(client, false);
+      expect(
+        within(dlg).getByText(/connectez-vous et activez la synchronisation/),
+      ).toBeInTheDocument();
+      expect(client.listNodeShares).not.toHaveBeenCalled();
+    });
   });
 
   describe('envoi par e-mail', () => {

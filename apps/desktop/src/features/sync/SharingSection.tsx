@@ -63,7 +63,7 @@ function JoinForm() {
           value={token}
           autoComplete="off"
           spellCheck={false}
-          maxLength={200}
+          maxLength={2000}
           onChange={(e) => setToken(e.target.value)}
         />
       </label>
@@ -169,7 +169,10 @@ function ManagePanel({ workspaceId }: { workspaceId: string }) {
   const copy = async () => {
     if (!created) return;
     try {
-      await navigator.clipboard.writeText(created.token);
+      // Message prêt à envoyer : la personne peut le coller tel quel dans « Rejoindre un espace ».
+      await navigator.clipboard.writeText(
+        t('sharing.message', { token: created.token, email: created.email }),
+      );
       setCopied(true);
     } catch {
       setCopied(false); // presse-papiers refusé : le jeton reste visible et sélectionnable

@@ -233,3 +233,9 @@ La présence passe par des canaux Realtime privés en « broadcast » (pas la pr
 
 ## D-064 — E-mail d'invitation : le serveur choisit le destinataire, le fournisseur est un détail
 Une fonction Edge envoie le message, mais le destinataire est lu dans l'invitation côté base (jamais fourni par l'appelant) après vérification du rôle d'administrateur ; elle utilise le jeton de l'appelant, pas de `service_role`. Réservation d'envoi atomique avec plafonds (3 par invitation, 1 par minute), rendue en cas d'échec. Les secrets (clé du fournisseur, expéditeur) vivent côté Supabase, jamais dans le dépôt. L'interface n'affirme « remis au service d'envoi » que sur confirmation du serveur, et affiche toujours le jeton : l'e-mail est un confort, jamais une dépendance.
+
+## D-065 — Partage d'un élément : accès décidé par nœud, l'invité n'est pas membre
+Un partage ciblé ne crée pas de membre : il crée un droit sur un nœud (`node_shares`) qui s'étend aux descendants. Toutes les règles de sécurité passent par `private.node_access`, la seule fonction qui décide (rôle de membre OU partage sur le nœud ou un ancêtre). Un invité ne peut ni déplacer/supprimer l'élément partagé, ni écrire hors du partage, ni purger ; le parent d'un élément partagé lui est masqué. Rôles d'invité : lecteur ou éditeur, jamais administrateur.
+
+## D-066 — Mises à jour : signées, sur clic, par GitHub Releases
+Le module officiel Tauri vérifie la signature de chaque archive avec une clé publique embarquée. Aucune installation sans clic. La clé privée reste hors du dépôt (secret GitHub). Hébergement : `latest.json` joint à la dernière release publiée. Compromis connu : si la clé privée est perdue, les installations existantes ne pourront plus être mises à jour (il faudra réinstaller à la main).

@@ -1195,3 +1195,60 @@ describe('présence en direct', () => {
     expect(document.querySelector('.slate-remote-caret')).toBeNull();
   });
 });
+
+describe('note du jour, duplication, export Markdown', () => {
+  const paletteRun = async (user: ReturnType<typeof userEvent.setup>, name: string) => {
+    await user.keyboard('{Control>}k{/Control}');
+    const box = await screen.findByRole('combobox');
+    await user.type(box, name);
+    await user.keyboard('{Enter}');
+  };
+
+  it('note du jour : crée « Journal » et la page du jour une seule fois, puis la rouvre', async () => {
+    const user = userEvent.setup();
+    const ctx = await renderApp();
+    const today = new Date().toLocaleDateString('sv-SE');
+    await user.click(await screen.findByRole('button', { name: 'Note du jour' }));
+    await waitFor(() => expect(ctx.api.nodes.some((n) => n.title === today)).toBe(true));
+    const folders = () => ctx.api.nodes.filter((n) => n.kind === 'folder' && n.title === 'Journal');
+    const pages = () => ctx.api.nodes.filter((n) => n.title === today);
+    expect(folders()).toHaveLength(1);
+    expect(pages()).toHaveLength(1);
+    expect(pages()[0]!.parentId).toBe(folders()[0]!.id);
+    await user.click(screen.getByRole('button', { name: 'Accueil' }));
+    await user.click(await screen.findByRole('button', { name: 'Note du jour' }));
+    await screen.findByRole('textbox', { name: 'Contenu de la page' });
+    expect(folders()).toHaveLength(1);
+    expect(pages()).toHaveLength(1);
+  });
+
+  it('dupliquer la page : copie indépendante au même endroit, avec le contenu actuel (même non enregistré)', async () => {
+    const user = userEvent.setup();
+    const ctx = await renderApp();
+    const ed = await newPage(user);
+    act(() => void ed.commands.insertContent('<p>contenu à dupliquer</p>'));
+    await user.click(screen.getByRole('button', { name: 'Affichage' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Dupliquer la page' }));
+    await waitFor(() => expect(ctx.api.nodes.filter((n) => n.kind === 'page')).toHaveLength(2));
+    const copy = ctx.api.nodes.find((n) => n.title.includes('(copie)'))!;
+    expect(copy).toBeDefined();
+    await waitFor(() =>
+      expect(ctx.api.pages.get(copy.id)?.textPlain ?? '').toContain('contenu à dupliquer'),
+    );
+  });
+
+  it('copier en Markdown : le contenu va dans le presse-papiers', async () => {
+    const user = userEvent.setup();
+    await renderApp();
+    const ed = await newPage(user);
+    act(() => void ed.commands.insertContent('<h2>Plan</h2><p>un <strong>gras</strong></p>'));
+    await user.click(screen.getByRole('button', { name: 'Affichage' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Copier la page en Markdown' }));
+    await waitFor(async () => {
+      const md = await navigator.clipboard.readText();
+      expect(md).toContain('## Plan');
+      expect(md).toContain('un **gras**');
+    });
+    void paletteRun;
+  });
+});

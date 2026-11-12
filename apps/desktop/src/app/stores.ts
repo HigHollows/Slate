@@ -15,8 +15,11 @@ import { createSecurityStore } from '../features/security';
 import { createPagesStore } from '../features/pages';
 import { createPreferencesStore } from '../features/preferences';
 import { bus } from '../shared/bus';
+import { useNav } from '../features/navigation';
 import { createPresenceService, createRealtimeSocket } from '../features/realtime';
 import { cleanName } from '../shared/presence';
+import { createTauriUpdater } from '../shared/updater';
+import { createUpdatesStore } from '../features/updates';
 import { ipc } from '../shared/ipc/client';
 import { toSlateError } from '../shared/ipc/errors';
 import { i18n } from '../shared/i18n';
@@ -87,12 +90,18 @@ export const syncControl = createSyncControl({
     },
   }),
   store: syncStore,
-  onJoined: (id) => {
+  onJoined: (id, nodeId) => {
     // Rafraîchit la liste des espaces puis affiche celui qu'on vient de rejoindre (sinon on resterait sur son espace vide).
     void pagesStore
       .getState()
       .init()
-      .then(() => pagesStore.getState().setWorkspace(id));
+      .then(() => pagesStore.getState().setWorkspace(id))
+      .then(() => {
+        // Invitation sur un élément précis : on l'ouvre directement.
+        const n = nodeId ? pagesStore.getState().nodes.find((x) => x.id === nodeId) : undefined;
+        if (n?.kind === 'page') useNav.getState().navigate({ name: 'page', id: n.id });
+        else if (n?.kind === 'database') useNav.getState().navigate({ name: 'database', id: n.id });
+      });
   },
   onRemoteChange: () => {
     bus.emit('sync-applied', {});
@@ -127,4 +136,16 @@ export const presenceService = createPresenceService({
     const a = accountStore.getState();
     return cleanName(a.profile?.displayName) || cleanName(a.email?.split('@')[0]) || '?';
   },
+});
+
+// Les espaces où l'on n'est qu'invité sont connus de la synchronisation : l'arborescence s'y adapte.
+syncStore.subscribe((s, prev) => {
+  if (s.guestSpaces !== prev.guestSpaces) pagesStore.setState({ guestSpaces: s.guestSpaces });
+});
+
+// Mises à jour : vérifiées par signature, installées uniquement sur clic ; absentes hors de l'application installée.
+export const updatesStore = createUpdatesStore({
+  backend: createTauriUpdater(),
+  settings: ipc,
+  onError: reportError,
 });

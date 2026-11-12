@@ -5,6 +5,8 @@ export interface BusEvents {
   'nodes-changed': { ids: string[] };
   /** Des données distantes viennent d'être appliquées localement (les panneaux ouverts doivent se relire). */
   'sync-applied': Record<string, never>;
+  /** Ouvrir le partage d'un dossier ou d'une page précis. */
+  'share-node': { id: string; title: string; kind: 'folder' | 'page' | 'database' };
 }
 type Handler<K extends keyof BusEvents> = (e: BusEvents[K]) => void;
 

@@ -266,6 +266,9 @@ export function createSyncEngine(d: SyncEngineDeps) {
       }
     }
     const roles = new Map(members.map((m) => [m.workspace_id, m.role]));
+    d.store.getState().set({
+      guestSpaces: members.filter((m) => m.scope === 'shared').map((m) => m.workspace_id),
+    });
     let cur = st;
     for (const w of st.workspaces) {
       const role = roles.get(w.workspaceId) ?? null;

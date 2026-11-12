@@ -20,6 +20,8 @@ import {
 } from './features/sync';
 import { i18n, initI18n } from './shared/i18n';
 import type { PresenceService } from './shared/presence';
+import type { UpdaterBackend } from './shared/updater';
+import { createUpdatesStore } from './features/updates';
 import type {
   DbRow,
   NodeRow,
@@ -923,6 +925,8 @@ export interface RenderOptions {
   syncClient?: SyncClient;
   /** Faux transport de présence (sinon : éditeur purement local). */
   presence?: PresenceService;
+  /** Faux module de mise à jour (sinon : indisponible, comme dans un navigateur). */
+  updater?: UpdaterBackend | null;
 }
 
 export async function renderApp(initial: Record<string, string> = {}, options: RenderOptions = {}) {
@@ -973,7 +977,7 @@ export async function renderApp(initial: Record<string, string> = {}, options: R
       live: { get: () => undefined, applyUpdate: () => undefined },
     }),
     onRemoteChange: () => undefined,
-    onJoined: (id) => {
+    onJoined: (id: string) => {
       void pages
         .getState()
         .init()
@@ -984,6 +988,7 @@ export async function renderApp(initial: Record<string, string> = {}, options: R
   const deps: AppDeps = {
     sync: { store: syncStore, control: syncControl },
     presence: options.presence ?? null,
+    updates: createUpdatesStore({ backend: options.updater ?? null, settings: api }),
     account,
     onError: report,
     preferences,

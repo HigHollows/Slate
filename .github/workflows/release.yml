@@ -1,10 +1,11 @@
 name: Release
-# Installateurs : Windows (.exe, NSIS) et macOS (.dmg, Apple Silicon et Intel).
-#  - Lancement manuel (« Run workflow ») : les installateurs sont déposés en artefacts de l'exécution (30 jours).
-#  - Étiquette « v* » : en plus, une version GitHub est PUBLIÉE automatiquement avec les installateurs en pièces jointes
-#    (publique si le dépôt l'est). Pour garder la main, créez d'abord le brouillon à la main : s'il existe déjà, les fichiers
-#    y sont ajoutés sans le publier.
-# Les builds ne sont PAS signés (aucun certificat) : Windows SmartScreen et macOS Gatekeeper afficheront un avertissement.
+# Installateurs : Windows (.exe, NSIS) et macOS (.dmg, Apple Silicon et Intel), et fichiers de MISE À JOUR AUTOMATIQUE.
+#  - Étiquette « v* » : la version GitHub est PUBLIÉE avec les installateurs, et `latest.json` (lu par l'application pour
+#    proposer la mise à jour) est joint si le secret de signature existe.
+#  - Lancement manuel (« Run workflow ») : les installateurs sont déposés en artefacts de l'exécution (30 jours), rien n'est publié.
+# Signature des mises à jour : le secret TAURI_SIGNING_PRIVATE_KEY (clé privée, jamais dans le dépôt) signe les archives ; la
+# clé PUBLIQUE est dans tauri.conf.json. Sans ce secret, les installateurs sont construits mais sans mise à jour automatique.
+# Les installateurs eux-mêmes ne sont pas signés par un certificat : Windows et macOS afficheront un avertissement.
 on:
   workflow_dispatch:
     inputs:
@@ -23,10 +24,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, bundles: nsis, label: windows-x64 }
-          - { os: macos-latest, bundles: dmg, label: macos-arm64 }
-          - { os: macos-15-intel, bundles: dmg, label: macos-x64 }
+          - { os: windows-latest, args: '--bundles nsis', label: windows-x64 }
+          - {
+              os: macos-latest,
+              args: '--target aarch64-apple-darwin --bundles app,dmg',
+              label: macos-arm64,
+            }
+          - {
+              os: macos-15-intel,
+              args: '--target x86_64-apple-darwin --bundles app,dmg',
+              label: macos-x64,
+            }
     runs-on: ${{ matrix.os }}
+    permissions: { contents: write }
     env:
       # Configuration cloud intégrée au build (valeurs publiques) : saisie manuelle, ou variables du dépôt pour les étiquettes.
       VITE_SUPABASE_URL: ${{ inputs.supabase_url || vars.VITE_SUPABASE_URL }}
@@ -37,45 +47,42 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version-file: .nvmrc, cache: pnpm }
       - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ startsWith(matrix.os, 'macos') && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
       - uses: Swatinem/rust-cache@v2
         with: { workspaces: apps/desktop/src-tauri }
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter @slate/desktop tauri build --bundles ${{ matrix.bundles }}
-      - uses: actions/upload-artifact@v4
+      - name: La signature des mises à jour est-elle configurée ?
+        id: sig
+        shell: bash
+        env:
+          KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -n "$KEY" ]; then echo "on=true" >> "$GITHUB_OUTPUT"; else echo "on=false" >> "$GITHUB_OUTPUT"; echo "::warning::TAURI_SIGNING_PRIVATE_KEY absent : pas de mise à jour automatique pour cette version"; fi
+      - name: Construire (et publier si étiquette)
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        with:
+          projectPath: apps/desktop
+          tagName: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || '' }}
+          releaseName: 'Slate __VERSION__'
+          releaseBody: 'Installateurs non signés par un certificat (Windows .exe, macOS .dmg Apple Silicon et Intel) : Windows et macOS afficheront un avertissement de sécurité. Sur Mac, clic droit sur Slate puis Ouvrir.'
+          releaseDraft: false
+          prerelease: false
+          includeUpdaterJson: ${{ steps.sig.outputs.on == 'true' }}
+          args: ${{ matrix.args }} ${{ steps.sig.outputs.on == 'true' && '--config src-tauri/tauri.updater.conf.json' || '' }}
+      - name: Artefacts (lancement manuel)
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
         with:
           name: slate-${{ matrix.label }}
           path: |
+            apps/desktop/src-tauri/target/**/release/bundle/nsis/*.exe
+            apps/desktop/src-tauri/target/**/release/bundle/dmg/*.dmg
             apps/desktop/src-tauri/target/release/bundle/nsis/*.exe
             apps/desktop/src-tauri/target/release/bundle/dmg/*.dmg
           if-no-files-found: error
-  draft-release:
-    if: startsWith(github.ref, 'refs/tags/v')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions: { contents: write }
-    steps:
-      - uses: actions/download-artifact@v4
-        with: { path: dist, pattern: slate-*, merge-multiple: true }
-      - name: Publication de la version
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
-          REPO: ${{ github.repository }}
-        run: |
-          set -u
-          # upload-artifact conserve les sous-dossiers (dist/dmg/…, dist/nsis/…) : on ne joint que les FICHIERS installateurs.
-          mapfile -t files < <(find dist -type f \( -name '*.exe' -o -name '*.dmg' \) | sort)
-          printf '%s\n' "${files[@]}"
-          test "${#files[@]}" -gt 0 || { echo "::error::aucun installateur à joindre"; exit 1; }
-          notes="Installateurs non signés (Windows .exe, macOS .dmg Apple Silicon et Intel). Windows et macOS afficheront un avertissement de sécurité tant que l'application n'est pas signée."
-          # La sortie de gh est reprise dans une annotation : sans elle, un échec ne dit pas pourquoi.
-          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
-            out=$(gh release upload "$TAG" "${files[@]}" --clobber --repo "$REPO" 2>&1) || fail=1
-          else
-            out=$(gh release create "$TAG" "${files[@]}" --repo "$REPO" --latest --title "Slate $TAG" --notes "$notes" 2>&1) || fail=1
-          fi
-          if [ "${fail:-0}" = 1 ]; then
-            echo "::error::publication des installateurs échouée : $(printf '%s' "$out" | tr '\n' ' ' | cut -c1-600)"
-            exit 1
-          fi
-          echo "$out"

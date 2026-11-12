@@ -66,3 +66,13 @@ Un **administrateur** d'un espace invite une personne par **adresse e-mail** ave
 - Un seul fournisseur (Resend) ; changer de fournisseur = modifier `handler.ts`.
 - Pas de suivi de réception, de rebond ou d'ouverture.
 - Aucun envoi réel n'a été effectué ni vérifié (pas de clé) ; le chemin « non configuré » a été vérifié sur le service déployé, les chemins d'envoi, de refus et de limite par des tests avec un faux fournisseur.
+
+## Partage d'un dossier ou d'une page précis
+**État** : serveur, synchronisation et interface faits ; 41 assertions SQL passent sur le vrai projet ; **jamais essayé avec deux vrais comptes**.
+
+- **Menu « Partager… »** (clic sur ⋯ d'un élément de l'arbre, ou menu Affichage d'une page) : réservé aux **administrateurs** de l'espace. On invite une adresse e-mail comme **lecteur** ou **éditeur** (jamais administrateur) ; le jeton s'utilise comme celui d'un espace entier (Compte → Partage → Rejoindre un espace, ou coller le message copié).
+- **L'invité n'est pas membre de l'espace.** Il voit et modifie seulement l'élément partagé **et ses descendants**, et rien d'autre : pas les autres pages, pas leurs titres (le serveur ne les lui envoie pas), pas les membres. L'élément partagé apparaît **à la racine** chez lui (le dossier qui le contient lui est masqué). Un invité arrivé par une invitation sur un élément est affiché dans le sélecteur d'espace comme « (partagé) ».
+- **Ce qu'un invité éditeur peut faire** : écrire dans les pages, créer des sous-pages et sous-dossiers, commenter, éditer les bases du partage. **Ce qu'il ne peut pas faire** : déplacer ou supprimer l'élément qu'on lui a partagé, créer à la racine ou dans un autre dossier, purger définitivement, inviter. Un lecteur invité ne peut rien écrire.
+- **Retirer l'accès** : l'administrateur retire la personne depuis la même fenêtre ; son accès cesse immédiatement côté serveur (lecture, écriture et canal de présence). Les copies déjà présentes sur ses appareils restent chez elle (comme pour un membre retiré).
+- **Garanties techniques** : un seul point de décision `private.node_access(nœud, rôle)` (rôle de membre OU partage sur le nœud ou un ancêtre, profondeur bornée) utilisé par toutes les règles RLS (pages, contenu, bases, commentaires, présence). Un membre garde exactement les mêmes droits qu'avant.
+- **Limites** : si un élément partagé est déplacé hors de son dossier par un administrateur, l'invité garde l'accès à cet élément (le partage est attaché à l'élément) ; le contenu déjà synchronisé chez un invité n'est pas rappelé quand on retire son accès ; les commentaires d'un élément partagé sont visibles de tous ceux qui y ont accès.

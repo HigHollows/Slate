@@ -36,6 +36,8 @@ export interface PagesState {
   canEdit: boolean;
   /** Rôle dans l'espace affiché (l'espace personnel non synchronisé = administrateur). */
   role: 'viewer' | 'editor' | 'admin';
+  /** Espaces où l'on est seulement invité sur certains éléments : on n'y crée rien à la racine. */
+  guestSpaces: string[];
   nodes: NodeRow[];
   trash: NodeRow[];
   recents: NodeRow[];
@@ -93,6 +95,7 @@ export function createPagesStore(api: PagesApi, onError: (e: unknown) => void = 
       workspaces: [],
       canEdit: true,
       role: 'admin',
+      guestSpaces: [],
       nodes: [],
       trash: [],
       recents: [],

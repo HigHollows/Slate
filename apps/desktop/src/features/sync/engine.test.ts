@@ -104,6 +104,9 @@ function make(
     }),
     // Le serveur ne connaît l'espace personnel qu'une fois créé.
     emailInvitation: vi.fn(async () => undefined),
+    createNodeInvitation: vi.fn(),
+    listNodeShares: vi.fn(async () => ({ shares: [], invitations: [] })),
+    removeNodeShare: vi.fn(async () => undefined),
     docStats: vi.fn(async () => []),
     pullNodeDocs: vi.fn(async () => []),
     compactDoc: vi.fn(async () => 99),
@@ -728,5 +731,20 @@ describe('fusion Yjs', () => {
       expect(r.stalled).toBe(false);
       expect(t.store.getState().phase).toBe('idle');
     });
+  });
+
+  it('espace où l’on n’est qu’invité : signalé à l’interface (portée « shared »)', async () => {
+    const t = make({
+      client: {
+        myMemberships: vi.fn(async () => [
+          { workspace_id: WS, role: 'editor' as const, scope: 'shared' as const },
+        ]),
+      },
+    });
+    t.st.current = status({ role: 'editor' });
+    await t.engine.runOnce();
+    expect(t.store.getState().guestSpaces).toEqual([WS]);
+    // on ne tente jamais de créer côté serveur un espace qui n'est pas le sien
+    expect(t.client.ensureWorkspace).not.toHaveBeenCalled();
   });
 });

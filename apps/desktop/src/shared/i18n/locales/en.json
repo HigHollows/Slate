@@ -57,12 +57,13 @@
   },
   "status": {
     "local": "Local · guest mode",
-    "cloudIdle": "Cloud configured · not connected",
-    "account": "Signed in · {{email}}"
+    "cloudIdle": "Sign in to sync",
+    "account": "Signed in · {{email}}",
+    "open": "Account, sync and sharing"
   },
   "home": {
     "title": "Welcome to Slate",
-    "description": "Your space is ready. Pages, databases and tasks arrive in the next phases; meanwhile, customise the app and explore the command palette.",
+    "description": "Create a page to start writing, or a list of tasks, goals or habits. Everything is saved on this device; sign in under Account to find your pages on your other devices and share them.",
     "openPalette": "Open the command palette",
     "customize": "Customise appearance"
   },
@@ -118,7 +119,10 @@
     "editor_width_normal": "Document width : normal",
     "editor_width_wide": "Document width : wide",
     "editor_width_full": "Document width : pleine wideur",
-    "editor_toolbar": "Show / hide the formatting toolbar"
+    "editor_toolbar": "Show / hide the formatting toolbar",
+    "journal_today": "Open today's note",
+    "page_duplicate": "Duplicate page",
+    "page_markdown": "Copy page as Markdown"
   },
   "settings": {
     "tabs": {
@@ -210,7 +214,10 @@
     "trash": "Trash",
     "movedToTrash": "“{{title}}” moved to trash",
     "undo": "Undo",
-    "newDatabase": "New database"
+    "newDatabase": "New database",
+    "copySuffix": "(copy)",
+    "markdownCopied": "Page copied as Markdown.",
+    "markdownFailed": "Could not copy the page as Markdown."
   },
   "trash": {
     "hint": "Items stay in the trash until you delete them permanently.",
@@ -907,7 +914,7 @@
     "locale": "Language",
     "timezone": "Time zone",
     "profileSaved": "Profile saved",
-    "syncNotAvailable": "Sign in to sync your folders and pages across your devices. Databases, comments, versions and images are not synced yet.",
+    "syncNotAvailable": "Sign in to find your pages, databases and comments on your other devices, and to invite other people. Without an account, everything stays on this device.",
     "notice": {
       "confirmEmail": "If the address is valid, a confirmation email has just been sent. Confirm it, then sign in.",
       "resetSent": "If an account exists for this address, a reset link has just been sent.",
@@ -924,7 +931,8 @@
       "session_invalid": "Session expired: sign in again.",
       "network": "Unable to connect: check your network.",
       "unknown": "Something went wrong. Try again."
-    }
+    },
+    "syncOnSignIn": "Sync this device with my account"
   },
   "reminders": {
     "toast": "Reminder: {{title}}",
@@ -1100,7 +1108,7 @@
     "adminOnly": "Your role in this space: {{role}}. Only administrators manage members and invitations.",
     "viewerNotice": "You are a viewer of this space: read only.",
     "joinTitle": "Join a space",
-    "joinHelp": "Paste the invitation token you received. It only works for the account whose address was invited.",
+    "joinHelp": "Paste the token you received, or the whole invitation message. It only works for the account whose address was invited.",
     "tokenLabel": "Invitation token",
     "join": "Join",
     "joined": "Joined space \"{{name}}\". It now appears in the sidebar space selector.",
@@ -1121,7 +1129,7 @@
     "invite": "Create invitation",
     "tokenOnce": "Invitation created for {{email}}. Copy this token now: it will never be shown again.",
     "tokenFor": "Invitation token for {{email}}",
-    "copy": "Copy",
+    "copy": "Copy invitation",
     "copied": "Copied",
     "pending": "Pending invitations",
     "noPending": "No pending invitations.",
@@ -1144,7 +1152,23 @@
       "failed": "The e-mail could not be sent (the sending service refused it or is unreachable). Pass the token below on yourself, or try again.",
       "retry": "Send the e-mail again"
     },
-    "sharedTag": "shared"
+    "sharedTag": "shared",
+    "message": "I'm inviting you to join my space on Slate.\n1. Open Slate and sign in with the address {{email}} (Settings → Account).\n2. Under Sharing → Join a space, paste this whole message (or just the token):\n{{token}}",
+    "node": {
+      "menu": "Share…",
+      "title": "Share \"{{title}}\"",
+      "intro": {
+        "folder": "The invited person will see this folder and everything in it, nothing else from your space.",
+        "page": "The invited person will see this page and its subpages, nothing else from your space.",
+        "database": "The invited person will see this database and its rows, nothing else from your space."
+      },
+      "needSync": "To share, sign in and turn on sync (Settings → Account).",
+      "access": "People with access to this item",
+      "noAccess": "Nobody else has access to this item specifically. Members of the space already have access.",
+      "removeAccess": "Remove access for {{name}}",
+      "invite": "Invite to this item",
+      "created": "Invitation created for {{email}}. Copy it now: it will not be shown again."
+    }
   },
   "presence": {
     "with": "With: {{names}}",
@@ -1160,5 +1184,27 @@
     "insert": "Insert",
     "table": "Table",
     "clipboardFailed": "The clipboard is not accessible: use the keyboard shortcut."
+  },
+  "updates": {
+    "title": "Updates",
+    "unavailable": "Automatic updates are only available in the installed app.",
+    "version": "Installed version: {{version}}",
+    "checkedAt": "Last checked: {{date}}",
+    "check": "Check for updates",
+    "checking": "Checking…",
+    "upToDate": "Slate is up to date.",
+    "available": "Version {{version}} is available.",
+    "downloading": "Downloading and verifying the signature…",
+    "downloadingPct": "Downloading: {{pct}}%",
+    "error": "The update failed (network unavailable or file rejected). Your data was not touched; try again later.",
+    "idle": "No check done yet.",
+    "install": "Install and restart",
+    "installHint": "Slate closes and reopens. Your pages are saved continuously; the update is signature-checked before being installed.",
+    "auto": "Check automatically",
+    "autoHint": "At startup and every 6 hours. Nothing is installed without your approval.",
+    "badge": "Update available: {{version}}"
+  },
+  "journal": {
+    "today": "Today's note"
   }
 }

@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Segmented, SettingRow, toast } from '../../shared/ui';
 import { MAX_PASSWORD, MIN_PASSWORD, type AuthError } from './authClient';
-import { SharingSection, SyncSection } from '../sync';
+import { SharingSection, SyncSection, useSyncControl } from '../sync';
+import { usePagesStore } from '../pages';
 import { useAccount, useAccountStore } from './context';
 
 const field =
@@ -31,6 +32,9 @@ export function AccountTab() {
   const [name, setName] = useState('');
   const [error, setError] = useState<AuthError | null>(null);
   const [busy, setBusy] = useState(false);
+  const [wantSync, setWantSync] = useState(true);
+  const sync = useSyncControl();
+  const pages = usePagesStore();
   const [draftName, setDraftName] = useState('');
   useEffect(() => setDraftName(profile?.displayName ?? ''), [profile?.displayName]);
   useEffect(() => {
@@ -188,7 +192,12 @@ export function AccountTab() {
             noValidate
             onSubmit={(e) => {
               e.preventDefault();
-              if (mode === 'signIn') void run(() => store.getState().signIn(mail, password));
+              if (mode === 'signIn')
+                void run(() => store.getState().signIn(mail, password)).then((err) => {
+                  // Connexion réussie : on active la synchronisation de cet appareil si la case est cochée.
+                  const ws = pages.getState().workspaceId;
+                  if (!err && wantSync && ws) void sync.enable(ws);
+                });
               else if (mode === 'signUp')
                 void run(() => store.getState().signUp(mail, password, name));
               else void run(() => store.getState().recover(mail));
@@ -235,6 +244,17 @@ export function AccountTab() {
                     {t('account.passwordHint', { min: MIN_PASSWORD })}
                   </span>
                 ) : null}
+              </label>
+            ) : null}
+            {mode === 'signIn' ? (
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={wantSync}
+                  onChange={(e) => setWantSync(e.target.checked)}
+                  className="size-4 accent-[var(--fg)]"
+                />
+                <span>{t('account.syncOnSignIn')}</span>
               </label>
             ) : null}
             <ErrorLine error={error} />

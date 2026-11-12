@@ -7,6 +7,7 @@ import { ancestors, displayTitle, usePages, usePagesStore } from '../pages';
 import { RowProperties } from '../databases';
 import { Button, EmptyState, IconButton, Menu, cx, toast } from '../../shared/ui';
 import type { NodeRow } from '../../shared/ipc/client';
+import { bus } from '../../shared/bus';
 import { toSlateError } from '../../shared/ipc/errors';
 import { FIND_EVENT } from './FindBar';
 import { LINK_OPEN_EVENT } from './LinkOpen';
@@ -18,6 +19,7 @@ import { usePreferences, usePreferencesStore } from '../preferences';
 import { VersionsDialog } from './VersionsDialog';
 import { PageEditor, type EditorApi } from './PageEditor';
 import { PresenceBar } from './presence';
+import { duplicatePage, pageMarkdown } from './pageTools';
 import type { Awareness } from 'y-protocols/awareness';
 import { SaveManager, registerManager, type SaveStatus } from '../../shared/save-manager';
 
@@ -80,6 +82,7 @@ export function PageView({ id, api }: { id: string; api: EditorApi }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [activeThread, setActiveThread] = useState<string | null>(null);
   const canEdit = usePages((s) => s.canEdit);
+  const isAdmin = usePages((s) => s.role === 'admin');
   const [awareness, setAwareness] = useState<Awareness | null>(null);
   const readMode = useWritingMode((m) => m.readMode) || !canEdit;
   const focusMode = useWritingMode((m) => m.focusMode);
@@ -273,6 +276,41 @@ export function PageView({ id, api }: { id: string; api: EditorApi }) {
           <Menu
             trigger={<IconButton icon="gears" label={t('writing.menu')} />}
             items={[
+              ...(isAdmin && treeNode
+                ? [
+                    {
+                      id: 'share',
+                      label: t('sharing.node.menu'),
+                      onSelect: () =>
+                        bus.emit('share-node', {
+                          id,
+                          title: displayTitle(treeNode, t('pages.untitled')),
+                          kind: treeNode.kind,
+                        }),
+                    },
+                  ]
+                : []),
+              {
+                id: 'duplicate',
+                label: t('command.page_duplicate'),
+                onSelect: () =>
+                  void duplicatePage(api, store, id, t('pages.copySuffix')).then((row) => {
+                    if (row) useNav.getState().navigate({ name: 'page', id: row.id });
+                  }),
+              },
+              {
+                id: 'markdown',
+                label: t('command.page_markdown'),
+                onSelect: () =>
+                  void pageMarkdown(api, id, treeNode?.title ?? '').then(
+                    (md) =>
+                      navigator.clipboard.writeText(md).then(
+                        () => toast.success(t('pages.markdownCopied')),
+                        () => toast.error(t('pages.markdownFailed')),
+                      ),
+                    () => toast.error(t('pages.markdownFailed')),
+                  ),
+              },
               {
                 id: 'read',
                 label: readMode ? t('writing.editMode') : t('writing.readMode'),

@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useCommandsState, useCommandsStore, resolveBindings, type Command } from '../commands';
 import { useNav } from '../navigation';
 import { useAccount } from '../account';
+import { useUpdates } from '../updates';
 import { PagesSidebar, usePages, usePagesStore } from '../pages';
 import { IconButton, Kbd, cx } from '../../shared/ui';
 import { Logo } from './Logo';
@@ -50,6 +51,7 @@ export function Sidebar({
     s.status === 'signedIn' || s.status === 'offline' ? s.email : null,
   );
   const navigate = useNav((s) => s.navigate);
+  const update = useUpdates((s) => (s.status === 'available' ? s.info : null));
   const workspaces = usePages((s) => s.workspaces);
   const workspaceId = usePages((s) => s.workspaceId);
   const pagesStore = usePagesStore();
@@ -113,17 +115,34 @@ export function Sidebar({
 
       <PagesSidebar />
 
-      <div className="flex items-center gap-2 px-1.5 text-xs text-muted" role="status">
+      {update ? (
+        <button
+          type="button"
+          onClick={() => navigate({ name: 'settings', tab: 'about' })}
+          className="flex items-center gap-2 rounded-md border border-line px-2 py-1.5 text-left text-xs transition-colors hover:bg-hover"
+        >
+          <span aria-hidden className="size-2 shrink-0 rounded-full bg-fg" />
+          {t('updates.badge', { version: update.version })}
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={() => navigate({ name: 'settings', tab: 'account' })}
+        title={t('status.open')}
+        className="flex items-center gap-2 rounded-md px-1.5 py-1 text-left text-xs text-muted transition-colors hover:bg-hover hover:text-fg"
+      >
         <span
           aria-hidden
-          className={cx('size-2 rounded-full', cloudEnabled ? 'bg-fg' : 'bg-muted')}
+          className={cx('size-2 shrink-0 rounded-full', account ? 'bg-fg' : 'bg-muted')}
         />
-        {account
-          ? t('status.account', { email: account })
-          : cloudEnabled
-            ? t('status.cloudIdle')
-            : t('status.local')}
-      </div>
+        <span className="truncate" role="status">
+          {account
+            ? t('status.account', { email: account })
+            : cloudEnabled
+              ? t('status.cloudIdle')
+              : t('status.local')}
+        </span>
+      </button>
     </nav>
   );
 }

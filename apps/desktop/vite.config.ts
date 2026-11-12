@@ -8,7 +8,8 @@ export default defineConfig({
   clearScreen: false,
   server: { port: 1420, strictPort: true },
   envPrefix: ['VITE_'],
-  build: { target: 'es2022', sourcemap: true },
+  // Les cartes de sources (7 Mo) ne sont pas embarquées dans l'application livrée.
+  build: { target: 'es2022', sourcemap: process.env.SLATE_SOURCEMAP === '1' },
   test: {
     environment: 'jsdom',
     globals: true,

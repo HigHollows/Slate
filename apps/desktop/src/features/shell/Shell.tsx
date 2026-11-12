@@ -11,6 +11,7 @@ import { ErrorBoundary, IconButton } from '../../shared/ui';
 import { Home } from './Home';
 import { Resizer } from './Resizer';
 import { Sidebar } from './Sidebar';
+import { ShareNodeDialog } from '../sync';
 import type { AppConfig } from '../../shared/config/env';
 import type { Ipc } from '../../shared/ipc/client';
 
@@ -111,6 +112,7 @@ export function Shell({
             {route.name === 'page' ? <PageView key={route.id} id={route.id} api={ipc} /> : null}
           </ErrorBoundary>
         </main>
+        <ShareNodeDialog />
       </div>
     </div>
   );

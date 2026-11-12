@@ -9,6 +9,8 @@ export interface SyncUiState {
   /** Dernière synchronisation complète ET confirmée (file vide, accusés reçus). */
   lastOkAt: string | null;
   error: string | null;
+  /** Espaces où l'on n'est PAS membre : seuls certains dossiers ou pages nous y sont partagés. */
+  guestSpaces: string[];
   set(p: Partial<Omit<SyncUiState, 'set'>>): void;
 }
 
@@ -18,6 +20,7 @@ export const createSyncStore = () =>
     status: null,
     lastOkAt: null,
     error: null,
+    guestSpaces: [],
     set: (p) => set(p),
   }));
 export type SyncStore = ReturnType<typeof createSyncStore>;

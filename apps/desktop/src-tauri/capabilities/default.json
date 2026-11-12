@@ -1,7 +1,12 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Permissions minimales de la fenêtre principale (aucun accès fichier/shell côté WebView).",
+  "description": "Permissions minimales de la fenêtre principale (aucun accès fichier/shell côté WebView) ; mise à jour signée et redémarrage.",
   "windows": ["main"],
-  "permissions": ["core:default", "core:window:allow-destroy"]
+  "permissions": [
+    "core:default",
+    "core:window:allow-destroy",
+    "updater:default",
+    "process:allow-restart"
+  ]
 }

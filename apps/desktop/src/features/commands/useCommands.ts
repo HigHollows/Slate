@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useNav, type SettingsTab } from '../navigation';
 import { useCreateGoalList, useCreateHabitTracker, useCreateTaskList } from '../databases';
 import { useSecurity, useSecurityStore } from '../security';
-import { useWritingMode } from '../editor';
+import { duplicatePage, pageMarkdown, useWritingMode, type EditorApi } from '../editor';
+import { toast } from '../../shared/ui';
 import { useNodeActions, usePagesStore } from '../pages';
 import { FONT_SCALES, usePreferences, usePreferencesStore, type Preferences } from '../preferences';
 import type { Command } from './model';
@@ -12,7 +13,7 @@ import { useCommandsStore } from './context';
 export const commandTitleKey = (id: string) => `command.${id.replace(/[.-]/g, '_')}`;
 
 /** Liste des commandes réellement disponibles (chacune est câblée à une action existante). */
-export function useCommands(): Command[] {
+export function useCommands(api?: Pick<EditorApi, 'pageGet' | 'pageSave'>): Command[] {
   const { t } = useTranslation();
   const nav = useNav;
   const prefsStore = usePreferencesStore();
@@ -71,6 +72,14 @@ export function useCommands(): Command[] {
         run: () => void nodeActions.createPage(null),
       }),
       mk({
+        id: 'journal.today',
+        group: 'navigation',
+        icon: 'calendar',
+        defaultShortcut: 'Mod+Alt+j',
+        keywords: ['journal', 'jour', 'today', 'daily', 'aujourd', 'note du jour'],
+        run: () => void nodeActions.openToday(),
+      }),
+      mk({
         id: 'database.new',
         group: 'navigation',
         icon: 'grid',
@@ -124,6 +133,37 @@ export function useCommands(): Command[] {
         keywords: ['trash', 'corbeille', 'restore', 'restaurer'],
         run: () => nav.getState().navigate({ name: 'trash' }),
       }),
+      ...(route.name === 'page' && api
+        ? [
+            mk({
+              id: 'page.duplicate',
+              group: 'navigation',
+              icon: 'paper',
+              keywords: ['duplicate', 'dupliquer', 'copie', 'clone'],
+              run: () =>
+                void duplicatePage(api, pages, route.id, t('pages.copySuffix')).then((row) => {
+                  if (row) useNav.getState().navigate({ name: 'page', id: row.id });
+                }),
+            }),
+            mk({
+              id: 'page.markdown',
+              group: 'navigation',
+              icon: 'paper',
+              keywords: ['markdown', 'export', 'exporter', 'copier', 'copy'],
+              run: () => {
+                const node = pages.getState().nodes.find((n) => n.id === route.id);
+                void pageMarkdown(api, route.id, node?.title ?? '').then(
+                  (md) =>
+                    navigator.clipboard.writeText(md).then(
+                      () => toast.success(t('pages.markdownCopied')),
+                      () => toast.error(t('pages.markdownFailed')),
+                    ),
+                  () => toast.error(t('pages.markdownFailed')),
+                );
+              },
+            }),
+          ]
+        : []),
       ...(route.name === 'page'
         ? [
             mk({
@@ -305,5 +345,6 @@ export function useCommands(): Command[] {
     createHabits,
     pinEnabled,
     securityStore,
+    api,
   ]);
 }

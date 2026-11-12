@@ -57,12 +57,13 @@
   },
   "status": {
     "local": "Local · mode invité",
-    "cloudIdle": "Cloud configuré · non connecté",
-    "account": "Connecté · {{email}}"
+    "cloudIdle": "Se connecter pour synchroniser",
+    "account": "Connecté · {{email}}",
+    "open": "Compte, synchronisation et partage"
   },
   "home": {
     "title": "Bienvenue dans Slate",
-    "description": "Votre espace est prêt. Les pages, bases de données et tâches arrivent dans les prochaines phases ; en attendant, personnalisez l'application et explorez la palette de commandes.",
+    "description": "Créez une page pour commencer à écrire, ou une liste de tâches, d'objectifs ou d'habitudes. Tout est enregistré sur cet appareil ; connectez-vous dans Compte pour retrouver vos pages sur vos autres appareils et les partager.",
     "openPalette": "Ouvrir la palette de commandes",
     "customize": "Personnaliser l'apparence"
   },
@@ -118,7 +119,10 @@
     "editor_width_normal": "Largeur du document : normal",
     "editor_width_wide": "Largeur du document : large",
     "editor_width_full": "Largeur du document : pleine largeur",
-    "editor_toolbar": "Afficher / masquer la barre de mise en forme"
+    "editor_toolbar": "Afficher / masquer la barre de mise en forme",
+    "journal_today": "Ouvrir la note du jour",
+    "page_duplicate": "Dupliquer la page",
+    "page_markdown": "Copier la page en Markdown"
   },
   "settings": {
     "tabs": {
@@ -210,7 +214,10 @@
     "trash": "Corbeille",
     "movedToTrash": "« {{title}} » mis à la corbeille",
     "undo": "Annuler",
-    "newDatabase": "Nouvelle base de données"
+    "newDatabase": "Nouvelle base de données",
+    "copySuffix": "(copie)",
+    "markdownCopied": "Page copiée en Markdown.",
+    "markdownFailed": "Impossible de copier la page en Markdown."
   },
   "trash": {
     "hint": "Les éléments restent dans la corbeille jusqu'à leur suppression définitive.",
@@ -907,7 +914,7 @@
     "locale": "Langue",
     "timezone": "Fuseau horaire",
     "profileSaved": "Profil enregistré",
-    "syncNotAvailable": "Connectez-vous pour synchroniser vos dossiers et pages entre vos appareils. Les bases de données, commentaires, versions et images ne sont pas encore synchronisés.",
+    "syncNotAvailable": "Connectez-vous pour retrouver vos pages, bases de données et commentaires sur vos autres appareils, et inviter d'autres personnes. Sans compte, tout reste sur cet appareil.",
     "notice": {
       "confirmEmail": "Si l'adresse est valide, un e-mail de confirmation vient d'être envoyé. Confirmez-le, puis connectez-vous.",
       "resetSent": "Si un compte existe pour cette adresse, un lien de réinitialisation vient d'être envoyé.",
@@ -924,7 +931,8 @@
       "session_invalid": "Session expirée : reconnectez-vous.",
       "network": "Connexion impossible : vérifiez votre réseau.",
       "unknown": "Une erreur est survenue. Réessayez."
-    }
+    },
+    "syncOnSignIn": "Synchroniser cet appareil avec mon compte"
   },
   "reminders": {
     "toast": "Rappel : {{title}}",
@@ -1100,7 +1108,7 @@
     "adminOnly": "Votre rôle dans cet espace : {{role}}. Seuls les administrateurs gèrent les membres et les invitations.",
     "viewerNotice": "Vous êtes lecteur de cet espace : lecture seule.",
     "joinTitle": "Rejoindre un espace",
-    "joinHelp": "Collez le jeton d'invitation reçu. Il n'est valable que pour le compte dont l'adresse a été invitée.",
+    "joinHelp": "Collez le jeton reçu, ou le message d'invitation entier. Il n'est valable que pour le compte dont l'adresse a été invitée.",
     "tokenLabel": "Jeton d'invitation",
     "join": "Rejoindre",
     "joined": "Espace « {{name}} » rejoint. Il apparaît dans le sélecteur d'espace de la barre latérale.",
@@ -1121,7 +1129,7 @@
     "invite": "Créer l'invitation",
     "tokenOnce": "Invitation créée pour {{email}}. Copiez ce jeton maintenant : il ne sera plus jamais affiché.",
     "tokenFor": "Jeton d'invitation pour {{email}}",
-    "copy": "Copier",
+    "copy": "Copier l'invitation",
     "copied": "Copié",
     "pending": "Invitations en attente",
     "noPending": "Aucune invitation en attente.",
@@ -1144,7 +1152,23 @@
       "failed": "L'e-mail n'a pas pu être envoyé (le service d'envoi l'a refusé ou est injoignable). Transmettez le jeton ci-dessous vous-même, ou réessayez.",
       "retry": "Renvoyer l'e-mail"
     },
-    "sharedTag": "partagé"
+    "sharedTag": "partagé",
+    "message": "Je t'invite à rejoindre mon espace sur Slate.\n1. Ouvre Slate et connecte-toi avec l'adresse {{email}} (Réglages → Compte).\n2. Dans Partage → Rejoindre un espace, colle ce message entier (ou seulement le jeton) :\n{{token}}",
+    "node": {
+      "menu": "Partager…",
+      "title": "Partager « {{title}} »",
+      "intro": {
+        "folder": "La personne invitée verra ce dossier et tout ce qu'il contient, rien d'autre de votre espace.",
+        "page": "La personne invitée verra cette page et ses sous-pages, rien d'autre de votre espace.",
+        "database": "La personne invitée verra cette base et ses lignes, rien d'autre de votre espace."
+      },
+      "needSync": "Pour partager, connectez-vous et activez la synchronisation (Réglages → Compte).",
+      "access": "Personnes ayant accès à cet élément",
+      "noAccess": "Personne d'autre n'a accès à cet élément précisément. Les membres de l'espace y ont déjà accès.",
+      "removeAccess": "Retirer l'accès de {{name}}",
+      "invite": "Inviter sur cet élément",
+      "created": "Invitation créée pour {{email}}. Copiez-la maintenant : elle ne sera plus affichée."
+    }
   },
   "presence": {
     "with": "Avec : {{names}}",
@@ -1160,5 +1184,27 @@
     "insert": "Insérer",
     "table": "Tableau",
     "clipboardFailed": "Le presse-papiers n'est pas accessible : utilisez le raccourci clavier."
+  },
+  "updates": {
+    "title": "Mises à jour",
+    "unavailable": "Les mises à jour automatiques ne sont disponibles que dans l'application installée.",
+    "version": "Version installée : {{version}}",
+    "checkedAt": "Dernière vérification : {{date}}",
+    "check": "Rechercher une mise à jour",
+    "checking": "Recherche en cours…",
+    "upToDate": "Slate est à jour.",
+    "available": "La version {{version}} est disponible.",
+    "downloading": "Téléchargement et vérification de la signature…",
+    "downloadingPct": "Téléchargement : {{pct}} %",
+    "error": "La mise à jour a échoué (réseau indisponible ou fichier refusé). Vos données n'ont pas été touchées ; réessayez plus tard.",
+    "idle": "Aucune vérification effectuée pour l'instant.",
+    "install": "Installer et redémarrer",
+    "installHint": "Slate se ferme puis se rouvre. Vos pages sont enregistrées en continu ; la mise à jour est vérifiée par signature avant d'être installée.",
+    "auto": "Vérifier automatiquement",
+    "autoHint": "Au démarrage puis toutes les 6 heures. Rien n'est installé sans votre accord.",
+    "badge": "Mise à jour disponible : {{version}}"
+  },
+  "journal": {
+    "today": "Note du jour"
   }
 }

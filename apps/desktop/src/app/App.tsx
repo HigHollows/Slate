@@ -10,6 +10,7 @@ import {
   syncControl,
   syncStore,
   presenceService,
+  updatesStore,
 } from './stores';
 import { readConfig } from '../shared/config/env';
 import { ipc } from '../shared/ipc/client';
@@ -23,6 +24,7 @@ const deps: AppDeps = {
   account: accountStore,
   sync: { store: syncStore, control: syncControl },
   presence: presenceService,
+  updates: updatesStore,
   onError: reportError,
   ipc,
   config: readConfig(),

@@ -1,7 +1,7 @@
 {
   "name": "@slate/desktop",
   "private": true,
-  "version": "0.1.2",
+  "version": "0.1.3",
   "type": "module",
   "scripts": {
     "vite": "vite",
@@ -22,6 +22,8 @@
     "@slate/icons": "workspace:*",
     "@tanstack/react-virtual": "^3.14.26",
     "@tauri-apps/api": "^2.12.4",
+    "@tauri-apps/plugin-process": "^2.4.0",
+    "@tauri-apps/plugin-updater": "^2.14.1",
     "@tiptap/core": "^3.33.0",
     "@tiptap/extension-code-block-lowlight": "^3.33.0",
     "@tiptap/extension-collaboration": "^3.33.0",

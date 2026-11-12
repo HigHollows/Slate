@@ -3,6 +3,7 @@ import { Button, EmptyState, Kbd } from '../../shared/ui';
 import { useCommandsState, useCommandsStore, resolveBindings, type Command } from '../commands';
 import { useCreateGoalList, useCreateHabitTracker, useCreateTaskList } from '../databases';
 import { useNav } from '../navigation';
+import { useNodeActions } from '../pages';
 
 export function Home({ commands }: { commands: Command[] }) {
   const { t } = useTranslation();
@@ -11,15 +12,18 @@ export function Home({ commands }: { commands: Command[] }) {
   const createTaskList = useCreateTaskList();
   const createGoalList = useCreateGoalList();
   const createHabits = useCreateHabitTracker();
+  const actions = useNodeActions();
   const combo = resolveBindings(commands, overrides).get('palette.open');
   return (
     <div className="grid h-full place-items-center p-8">
       <EmptyState icon="sparkles" title={t('home.title')} description={t('home.description')}>
-        <Button
-          variant="primary"
-          icon="search"
-          onClick={() => store.getState().setPaletteOpen(true)}
-        >
+        <Button variant="primary" icon="plus" onClick={() => void actions.createPage(null)}>
+          {t('pages.newPage')}
+        </Button>
+        <Button icon="calendar" onClick={() => void actions.openToday()}>
+          {t('journal.today')}
+        </Button>
+        <Button icon="search" onClick={() => store.getState().setPaletteOpen(true)}>
           {t('home.openPalette')}
           {combo ? <Kbd combo={combo} /> : null}
         </Button>

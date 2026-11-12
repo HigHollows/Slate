@@ -303,7 +303,10 @@ pub fn join_workspace(
     tx.execute("UPDATE sync_settings SET enabled = 1 WHERE id = 1", [])?;
     tx.execute(
         "INSERT INTO sync_state (workspace_id, enabled, role, struct_backfilled) VALUES (?1, 1, ?2, 1)
-         ON CONFLICT(workspace_id) DO UPDATE SET enabled = 1, role = excluded.role",
+         ON CONFLICT(workspace_id) DO UPDATE SET enabled = 1, role = excluded.role,
+           -- Un nouvel accès dans un espace déjà connu (un autre dossier partagé) : tout relire depuis le début, sinon
+           -- les éléments plus anciens que les curseurs ne viendraient jamais. Réappliquer est sans effet.
+           node_cursor = 0, doc_cursor = 0, struct_cursor = 0",
         params![id, role],
     )?;
     tx.commit()?;

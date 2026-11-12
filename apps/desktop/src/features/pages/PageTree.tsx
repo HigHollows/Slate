@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState, type DragEvent, type KeyboardEven
 import { useTranslation } from 'react-i18next';
 import { useNav } from '../navigation';
 import { IconButton, Menu, cx } from '../../shared/ui';
+import { bus } from '../../shared/bus';
 import type { NodeRow } from '../../shared/ipc/client';
 import { useNodeActions } from './actions';
 import { usePages, usePagesStore } from './context';
@@ -37,6 +38,7 @@ export function PageTree() {
   const [focusId, setFocusId] = useState<string | null>(null);
   const [renaming, setRenaming] = useState<string | null>(null);
   const canEdit = usePages((s) => s.canEdit);
+  const isAdmin = usePages((s) => s.role === 'admin');
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [moving, setMoving] = useState<NodeRow | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -283,6 +285,16 @@ export function PageTree() {
                                 },
                               ]
                             : []),
+                        ]
+                      : []),
+                    ...(isAdmin
+                      ? [
+                          {
+                            id: 'share',
+                            label: t('sharing.node.menu'),
+                            onSelect: () =>
+                              bus.emit('share-node', { id: n.id, title, kind: n.kind }),
+                          },
                         ]
                       : []),
                     {

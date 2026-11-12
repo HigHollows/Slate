@@ -23,6 +23,7 @@ import { DatabasesProvider, type DatabasesApi, type DatabasesStore } from '../fe
 import { PagesProvider, type PagesStore } from '../features/pages';
 import { PresenceProvider, installCloseGuard, type EditorApi } from '../features/editor';
 import type { PresenceService } from '../shared/presence';
+import { UpdatesProvider, useAutoUpdateCheck, type UpdatesStore } from '../features/updates';
 import type { AppConfig } from '../shared/config/env';
 import { detectLocale, i18n as i18nInstance } from '../shared/i18n';
 import type { Ipc } from '../shared/ipc/client';
@@ -38,6 +39,8 @@ export interface AppDeps {
   sync: { store: SyncStore; control: SyncControl };
   /** Présence en direct ; absent = éditeur purement local. */
   presence?: PresenceService | null;
+  /** Mises à jour de l'application (module Tauri signé). */
+  updates: UpdatesStore;
   onError: (e: unknown) => void;
   ipc: Pick<Ipc, 'systemInfo' | 'settingsGetAll' | 'searchPages'> &
     EditorApi &
@@ -49,7 +52,7 @@ export interface AppDeps {
 
 function Workspace({ deps }: { deps: AppDeps }) {
   const { i18n, t } = useTranslation();
-  const commands = useCommands();
+  const commands = useCommands(deps.ipc);
   const locale = useStore(deps.preferences, (s) => s.prefs.locale);
   useGlobalShortcuts(commands);
 
@@ -103,6 +106,7 @@ function DataBoot({ deps }: { deps: AppDeps }) {
   }, [deps]);
   useReminders(deps.ipc, deps.onError);
   useSyncScheduler(deps.sync.control);
+  useAutoUpdateCheck(deps.updates);
   return <Workspace deps={deps} />;
 }
 
@@ -117,9 +121,11 @@ export function AppRoot({ deps }: { deps: AppDeps }) {
                 <DatabasesProvider store={deps.databases}>
                   <TooltipProvider>
                     <PresenceProvider value={deps.presence ?? null}>
-                      <LockGate>
-                        <DataBoot deps={deps} />
-                      </LockGate>
+                      <UpdatesProvider store={deps.updates}>
+                        <LockGate>
+                          <DataBoot deps={deps} />
+                        </LockGate>
+                      </UpdatesProvider>
                     </PresenceProvider>
                     <Toaster />
                   </TooltipProvider>

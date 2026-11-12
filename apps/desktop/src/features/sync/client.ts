@@ -94,6 +94,11 @@ export interface DocStat {
   bytes: number;
 }
 
+export interface NodeShares {
+  shares: { user_id: string; role: WorkspaceRole; email: string; display_name: string }[];
+  invitations: { id: string; email: string; role: WorkspaceRole; expires_at: string }[];
+}
+
 export interface SyncClient {
   /**
    * Demande au serveur d'envoyer l'invitation PAR E-MAIL à l'adresse de l'invitation (jamais une adresse fournie ici).
@@ -115,7 +120,19 @@ export interface SyncClient {
     stateBase64: string;
   }): Promise<number>;
   /** Rôle de l'utilisateur dans chacun de ses espaces. */
-  myMemberships(): Promise<{ workspace_id: string; role: WorkspaceRole }[]>;
+  /** Tous les accès : espaces dont on est membre, et espaces où seuls des éléments nous sont partagés (`scope: 'shared'`). */
+  myMemberships(): Promise<
+    { workspace_id: string; role: WorkspaceRole; scope?: 'member' | 'shared'; name?: string }[]
+  >;
+  /** Invite une adresse sur UN dossier ou UNE page (lecteur ou éditeur). */
+  createNodeInvitation(
+    nodeId: string,
+    email: string,
+    role: 'viewer' | 'editor',
+  ): Promise<CreatedInvitation>;
+  /** Qui a accès à cet élément précisément, et les invitations en attente (administrateurs). */
+  listNodeShares(nodeId: string): Promise<NodeShares>;
+  removeNodeShare(nodeId: string, userId: string): Promise<void>;
   createInvitation(
     workspaceId: string,
     email: string,
@@ -124,7 +141,7 @@ export interface SyncClient {
   ): Promise<CreatedInvitation>;
   acceptInvitation(
     token: string,
-  ): Promise<{ workspace_id: string; name: string; role: WorkspaceRole }>;
+  ): Promise<{ workspace_id: string; name: string; role: WorkspaceRole; node_id?: string | null }>;
   revokeInvitation(id: string): Promise<void>;
   listInvitations(workspaceId: string): Promise<Invitation[]>;
   listMembers(workspaceId: string): Promise<Member[]>;
@@ -242,9 +259,35 @@ export function createSyncClient(opts: {
       await call('/functions/v1/send-invitation', { token, locale });
     },
     async myMemberships() {
-      const r = await call('/rest/v1/workspace_members?select=workspace_id,role', null, {}, 'GET');
+      const r = await call('/rest/v1/rpc/my_access', {});
       if (!Array.isArray(r)) throw new SyncError('server', 200, 'réponse inattendue');
-      return r as { workspace_id: string; role: WorkspaceRole }[];
+      return r as {
+        workspace_id: string;
+        role: WorkspaceRole;
+        scope?: 'member' | 'shared';
+        name?: string;
+      }[];
+    },
+    async createNodeInvitation(nodeId, email, role) {
+      const r = await call('/rest/v1/rpc/create_node_invitation', {
+        p_node: nodeId,
+        p_email: email,
+        p_role: role,
+      });
+      if (!r || typeof (r as CreatedInvitation).token !== 'string')
+        throw new SyncError('server', 200, 'réponse inattendue');
+      return r as CreatedInvitation;
+    },
+    async listNodeShares(nodeId) {
+      const r = (await call('/rest/v1/rpc/list_node_shares', {
+        p_node: nodeId,
+      })) as NodeShares | null;
+      if (!r || !Array.isArray(r.shares) || !Array.isArray(r.invitations))
+        throw new SyncError('server', 200, 'réponse inattendue');
+      return r;
+    },
+    async removeNodeShare(nodeId, userId) {
+      await call('/rest/v1/rpc/remove_node_share', { p_node: nodeId, p_user: userId });
     },
     async createInvitation(workspaceId, email, role, ttlHours = 168) {
       const r = await call('/rest/v1/rpc/create_invitation', {
@@ -261,7 +304,12 @@ export function createSyncClient(opts: {
       const r = await call('/rest/v1/rpc/accept_invitation', { p_token: token });
       if (!r || typeof (r as { workspace_id?: string }).workspace_id !== 'string')
         throw new SyncError('server', 200, 'réponse inattendue');
-      return r as { workspace_id: string; name: string; role: WorkspaceRole };
+      return r as {
+        workspace_id: string;
+        name: string;
+        role: WorkspaceRole;
+        node_id?: string | null;
+      };
     },
     async revokeInvitation(id) {
       await call('/rest/v1/rpc/revoke_invitation', { p_id: id });
@@ -338,6 +386,9 @@ export function createUnavailableSyncClient(make: () => Error): SyncClient {
   const fail = () => Promise.reject(make());
   return {
     myMemberships: fail,
+    createNodeInvitation: fail,
+    listNodeShares: fail,
+    removeNodeShare: fail,
     emailInvitation: fail,
     docStats: fail,
     pullNodeDocs: fail,
