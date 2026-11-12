@@ -122,7 +122,12 @@
     "editor_toolbar": "Show / hide the formatting toolbar",
     "journal_today": "Open today's note",
     "page_duplicate": "Duplicate page",
-    "page_markdown": "Copy page as Markdown"
+    "page_markdown": "Copy page as Markdown",
+    "tab_new": "New tab",
+    "tab_close": "Close tab",
+    "tab_next": "Next tab",
+    "tab_prev": "Previous tab",
+    "tab_reopen": "Reopen closed tab"
   },
   "settings": {
     "tabs": {
@@ -1206,5 +1211,16 @@
   },
   "journal": {
     "today": "Today's note"
+  },
+  "tabs": {
+    "label": "Open tabs",
+    "new": "New tab",
+    "max": "Maximum of {{count}} tabs reached",
+    "close": "Close tab",
+    "closeOthers": "Close other tabs",
+    "closeRight": "Close tabs to the right",
+    "closeNamed": "Close tab \"{{title}}\"",
+    "unavailable": "Page unavailable",
+    "openInNew": "Open in new tab"
   }
 }

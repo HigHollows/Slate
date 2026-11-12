@@ -140,10 +140,15 @@ describe('éditeur de texte riche : barre d’outils', () => {
     await user.clear(hex);
     await user.type(hex, '#12ab9f{Enter}');
     await waitFor(() => expect(ed.getHTML()).toContain('data-doc-color="#12ab9f"'));
-    if (!screen.queryByRole('button', { name: 'Couleur par défaut' }))
-      await user.click(tool('Couleur du texte'));
-    await user.click(await screen.findByRole('button', { name: 'Couleur par défaut' }));
-    await waitFor(() => expect(ed.getHTML()).not.toContain('data-doc-color'));
+    // Le panneau peut se refermer de lui-même quand l'éditeur reprend le focus (selon la charge) : on réessaie jusqu'à
+    // ce que la couleur soit retirée, en rouvrant le panneau au besoin.
+    await waitFor(async () => {
+      if (ed.getHTML().includes('data-doc-color')) {
+        const reset = screen.queryByRole('button', { name: 'Couleur par défaut' });
+        await user.click(reset ?? tool('Couleur du texte'));
+      }
+      expect(ed.getHTML()).not.toContain('data-doc-color');
+    });
   });
 
   it('listes, titres, citation et suppression du formatage', async () => {

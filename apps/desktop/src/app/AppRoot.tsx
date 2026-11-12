@@ -24,6 +24,7 @@ import { PagesProvider, type PagesStore } from '../features/pages';
 import { PresenceProvider, installCloseGuard, type EditorApi } from '../features/editor';
 import type { PresenceService } from '../shared/presence';
 import { UpdatesProvider, useAutoUpdateCheck, type UpdatesStore } from '../features/updates';
+import { useTabsPersistence } from '../features/navigation';
 import type { AppConfig } from '../shared/config/env';
 import { detectLocale, i18n as i18nInstance } from '../shared/i18n';
 import type { Ipc } from '../shared/ipc/client';
@@ -42,7 +43,7 @@ export interface AppDeps {
   /** Mises à jour de l'application (module Tauri signé). */
   updates: UpdatesStore;
   onError: (e: unknown) => void;
-  ipc: Pick<Ipc, 'systemInfo' | 'settingsGetAll' | 'searchPages'> &
+  ipc: Pick<Ipc, 'systemInfo' | 'settingsGetAll' | 'settingsSet' | 'searchPages'> &
     EditorApi &
     DatabasesApi &
     SecurityApi &
@@ -107,6 +108,7 @@ function DataBoot({ deps }: { deps: AppDeps }) {
   useReminders(deps.ipc, deps.onError);
   useSyncScheduler(deps.sync.control);
   useAutoUpdateCheck(deps.updates);
+  useTabsPersistence(deps.ipc, deps.onError);
   return <Workspace deps={deps} />;
 }
 

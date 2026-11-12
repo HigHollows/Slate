@@ -11,11 +11,14 @@ export function useNodeActions() {
   const { t } = useTranslation();
 
   const open = useCallback(
-    (id: string) => {
+    (id: string, opts?: { newTab?: boolean; background?: boolean }) => {
       const kind = store.getState().nodes.find((n) => n.id === id)?.kind;
-      useNav
-        .getState()
-        .navigate(kind === 'database' ? { name: 'database', id } : { name: 'page', id });
+      const route =
+        kind === 'database' ? ({ name: 'database', id } as const) : ({ name: 'page', id } as const);
+      // Nouvel onglet : Ctrl/⌘+clic, clic du milieu ou menu ; sinon la page remplace celle de l'onglet actif.
+      if (opts?.newTab)
+        useNav.getState().openTab(route, opts.background ? { background: true } : undefined);
+      else useNav.getState().navigate(route);
     },
     [store],
   );

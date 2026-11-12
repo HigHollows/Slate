@@ -2,15 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { useNav } from './store';
 
 describe('historique de navigation', () => {
-  beforeEach(() =>
-    useNav.setState({
-      stack: [{ name: 'home' }],
-      index: 0,
-      route: { name: 'home' },
-      canBack: false,
-      canForward: false,
-    }),
-  );
+  beforeEach(() => useNav.getState().reset());
   it('avance, recule et tronque l’avenir après une nouvelle navigation', () => {
     const n = useNav.getState();
     n.navigate({ name: 'settings', tab: 'appearance' });

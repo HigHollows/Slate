@@ -122,7 +122,12 @@
     "editor_toolbar": "Afficher / masquer la barre de mise en forme",
     "journal_today": "Ouvrir la note du jour",
     "page_duplicate": "Dupliquer la page",
-    "page_markdown": "Copier la page en Markdown"
+    "page_markdown": "Copier la page en Markdown",
+    "tab_new": "Nouvel onglet",
+    "tab_close": "Fermer l'onglet",
+    "tab_next": "Onglet suivant",
+    "tab_prev": "Onglet précédent",
+    "tab_reopen": "Rouvrir l'onglet fermé"
   },
   "settings": {
     "tabs": {
@@ -1206,5 +1211,16 @@
   },
   "journal": {
     "today": "Note du jour"
+  },
+  "tabs": {
+    "label": "Onglets ouverts",
+    "new": "Nouvel onglet",
+    "max": "Maximum de {{count}} onglets atteint",
+    "close": "Fermer l'onglet",
+    "closeOthers": "Fermer les autres onglets",
+    "closeRight": "Fermer les onglets à droite",
+    "closeNamed": "Fermer l'onglet « {{title}} »",
+    "unavailable": "Page indisponible",
+    "openInNew": "Ouvrir dans un nouvel onglet"
   }
 }

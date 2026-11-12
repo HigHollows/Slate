@@ -48,7 +48,13 @@ function NodeLink({ node }: { node: NodeRow }) {
   return (
     <button
       type="button"
-      onClick={() => open(node.id)}
+      onClick={(e) => open(node.id, { newTab: e.metaKey || e.ctrlKey })}
+      onAuxClick={(e) => {
+        if (e.button === 1) {
+          e.preventDefault();
+          open(node.id, { newTab: true });
+        }
+      }}
       aria-current={current ? 'page' : undefined}
       className={cx(
         'flex h-[var(--row-h)] w-full items-center gap-2 rounded-md px-2 text-left hover:bg-hover',

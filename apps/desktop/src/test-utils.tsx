@@ -932,13 +932,7 @@ export interface RenderOptions {
 export async function renderApp(initial: Record<string, string> = {}, options: RenderOptions = {}) {
   await initI18n('fr');
   await i18n.changeLanguage('fr');
-  useNav.setState({
-    stack: [{ name: 'home' }],
-    index: 0,
-    route: { name: 'home' },
-    canBack: false,
-    canForward: false,
-  });
+  useNav.getState().reset();
   useToasts.setState({ toasts: [] });
   const api = fakeBackend({ 'pref.locale': '"fr"', ...initial });
   if (options.pin) {

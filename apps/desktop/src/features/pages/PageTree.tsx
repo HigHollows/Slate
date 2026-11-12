@@ -59,10 +59,10 @@ export function PageTree() {
     refs.current.get(id)?.focus();
   };
 
-  const activate = (n: NodeRow) => {
+  const activate = (n: NodeRow, newTab = false) => {
     setFocusId(n.id);
     if (n.kind === 'folder') store.getState().setExpanded(n.id, !expanded.has(n.id));
-    else actions.open(n.id);
+    else actions.open(n.id, { newTab });
   };
 
   const onKey = (e: KeyboardEvent, item: TreeItem, index: number) => {
@@ -241,7 +241,13 @@ export function PageTree() {
                 <button
                   type="button"
                   tabIndex={-1}
-                  onClick={() => activate(n)}
+                  onClick={(e) => activate(n, e.metaKey || e.ctrlKey)}
+                  onAuxClick={(e) => {
+                    if (e.button === 1 && n.kind !== 'folder') {
+                      e.preventDefault();
+                      activate(n, true);
+                    }
+                  }}
                   onDoubleClick={() => canEdit && setRenaming(n.id)}
                   className={cx(
                     'min-w-0 flex-1 truncate text-left',
@@ -264,6 +270,15 @@ export function PageTree() {
                     />
                   }
                   items={[
+                    ...(n.kind !== 'folder'
+                      ? [
+                          {
+                            id: 'newtab',
+                            label: t('tabs.openInNew'),
+                            onSelect: () => actions.open(n.id, { newTab: true }),
+                          },
+                        ]
+                      : []),
                     ...(canEdit
                       ? [
                           {

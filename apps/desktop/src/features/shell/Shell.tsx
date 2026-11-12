@@ -11,6 +11,7 @@ import { ErrorBoundary, IconButton } from '../../shared/ui';
 import { Home } from './Home';
 import { Resizer } from './Resizer';
 import { Sidebar } from './Sidebar';
+import { TabBar } from './TabBar';
 import { ShareNodeDialog } from '../sync';
 import type { AppConfig } from '../../shared/config/env';
 import type { Ipc } from '../../shared/ipc/client';
@@ -101,6 +102,7 @@ export function Shell({
                       : t('pages.untitled')}
           </h1>
         </header>
+        {focus ? null : <TabBar />}
         <main className="min-h-0 flex-1 overflow-y-auto">
           <ErrorBoundary title={t('errors.unknown')} retryLabel={t('system.retry')}>
             {route.name === 'home' ? <Home commands={commands} /> : null}
